@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-neutral-200 font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+}
+
+@layer components {
+  .serai-card {
+    @apply bg-card border border-border rounded-sm;
+  }
+
+  .serai-input {
+    @apply w-full bg-[#111] border border-border text-neutral-200 px-3 py-2 text-sm
+           focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30
+           placeholder:text-neutral-600 rounded-sm transition-colors;
+  }
+
+  .serai-label {
+    @apply block text-xs font-mono uppercase tracking-widest text-neutral-500 mb-1.5;
+  }
+
+  .serai-btn-primary {
+    @apply bg-accent text-bg font-mono font-bold text-sm tracking-wider uppercase
+           px-6 py-3 hover:bg-accent2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .serai-btn-secondary {
+    @apply border border-border text-neutral-400 font-mono text-sm tracking-wider uppercase
+           px-5 py-2.5 hover:border-accent hover:text-accent transition-colors;
+  }
+
+  .badge {
+    @apply inline-block font-mono text-xs font-bold tracking-widest px-2 py-0.5;
+  }
+  .badge-critical { @apply bg-red-500/10 text-red-400 border border-red-500/30; }
+  .badge-high { @apply bg-orange-500/10 text-orange-400 border border-orange-500/30; }
+  .badge-max { @apply bg-red-500/10 text-red-400 border border-red-500/30; }
+  .badge-medium { @apply bg-yellow-500/10 text-yellow-400 border border-yellow-500/30; }
+  .badge-low { @apply bg-green-500/10 text-green-400 border border-green-500/30; }
+}
+
+/* animated scan line */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+.scanline-anim {
+  animation: scanline 8s linear infinite;
+}
+
+/* glow pulse for score */
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(163, 230, 53, 0.4)); }
+  50% { filter: drop-shadow(0 0 20px rgba(163, 230, 53, 0.7)); }
+}
+.glow-score { animation: glow-pulse 3s ease-in-out infinite; }

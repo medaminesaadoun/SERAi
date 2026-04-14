@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;700;900&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #a3e635;
+    --accent2: #84cc16;
+    --text: #e5e5e5;
+    --muted: #737373;
+    --red: #ef4444;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --green: #22c55e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  /* ── PAGE BREAKS ── */
+  .page { page-break-after: always; padding: 48px 56px; min-height: 100vh; }
+  .page:last-child { page-break-after: avoid; }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cover::before {
+    content: 'CONFIDENTIEL';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-35deg);
+    font-size: 96pt;
+    font-weight: 900;
+    color: rgba(163,230,53,0.04);
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 8px;
+  }
+
+  .cover-logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 52pt;
+    font-weight: 700;
+    letter-spacing: -2px;
+    color: var(--accent);
+  }
+  .cover-logo span { color: var(--text); }
+  .cover-logo .dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--accent);
+    vertical-align: super;
+    margin-left: 2px;
+  }
+
+  .cover-tagline {
+    font-size: 11pt;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .cover-company {
+    font-size: 28pt;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .cover-meta {
+    color: var(--muted);
+    font-size: 10pt;
+    letter-spacing: 1px;
+  }
+
+  .cover-score-block {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-left: 4px solid {{ risk_color }};
+    background: var(--card);
+    margin: 40px 0;
+  }
+
+  .cover-score-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 80pt;
+    font-weight: 700;
+    color: {{ risk_color }};
+    line-height: 1;
+  }
+
+  .cover-score-label { font-size: 9pt; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+  .cover-risk-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20pt;
+    font-weight: 700;
+    color: {{ risk_color }};
+    border: 2px solid {{ risk_color }};
+    padding: 8px 24px;
+    letter-spacing: 4px;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 28px;
+  }
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9pt;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .section-heading {
+    font-size: 18pt;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border-radius: 2px;
+  }
+  .badge-critical { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+  .badge-high, .badge-max { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+  .badge-medium { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+  .badge-low { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+
+  /* ── SCORE BARS ── */
+  .score-row { margin-bottom: 14px; }
+  .score-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 10pt;
+  }
+  .score-bar-bg {
+    background: var(--border);
+    height: 8px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* ── TARGETS ── */
+  .target-card {
+    border-left: 3px solid var(--border);
+    padding-left: 20px;
+    margin-bottom: 20px;
+  }
+  .target-name { font-size: 13pt; font-weight: 700; margin-bottom: 2px; }
+  .target-role { color: var(--muted); font-size: 10pt; margin-bottom: 10px; }
+  .vector-tag {
+    display: inline-block;
+    font-size: 8pt;
+    background: rgba(163,230,53,0.08);
+    border: 1px solid rgba(163,230,53,0.2);
+    color: var(--accent);
+    padding: 2px 8px;
+    margin: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── SCENARIOS ── */
+  .scenario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .scenario-title { font-size: 12pt; font-weight: 700; margin-bottom: 4px; }
+  .mitre-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9pt;
+    color: var(--accent);
+    background: rgba(163,230,53,0.08);
+    border: 1px solid rgba(163,230,53,0.2);
+    padding: 3px 10px;
+  }
+  .scenario-meta { display: flex; gap: 12px; margin-top: 10px; font-size: 9pt; color: var(--muted); }
+
+  /* ── RECOMMENDATIONS ── */
+  .rec-card {
+    display: flex;
+    gap: 20px;
+    padding: 18px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    margin-bottom: 12px;
+  }
+  .rec-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20pt;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    min-width: 36px;
+  }
+  .rec-title { font-size: 11pt; font-weight: 700; margin-bottom: 6px; }
+  .rec-desc { font-size: 10pt; color: var(--muted); margin-bottom: 8px; }
+  .rec-mitre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8pt;
+    color: var(--accent2);
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    position: fixed;
+    bottom: 24px;
+    left: 56px;
+    right: 56px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  td, th { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; font-size: 10pt; }
+  th { color: var(--muted); font-weight: 600; font-size: 9pt; text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<!-- ══ COVER PAGE ══ -->
+<div class="page cover">
+  <div>
+    <div class="cover-logo">SER<span>A</span><span class="dot"></span></div>
+    <div class="cover-tagline">Social Engineering Risk Analyzer — AI-Powered</div>
+  </div>
+
+  <div>
+    <div class="cover-company">{{ company_name }}</div>
+    <div class="cover-meta">SECURITY ASSESSMENT REPORT &nbsp;·&nbsp; {{ formatted_date }}</div>
+    <div class="cover-meta">Report ID: {{ analysis_id }}</div>
+
+    <div class="cover-score-block">
+      <div>
+        <div class="cover-score-label">Global Risk Score</div>
+        <div class="cover-score-number">{{ global_score }}</div>
+        <div class="cover-score-label">/ 100</div>
+      </div>
+      <div>
+        <div class="cover-score-label" style="margin-bottom:8px;">Risk Level</div>
+        <div class="cover-risk-badge">{{ risk_level }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="color: var(--muted); font-size: 9pt; border-top: 1px solid var(--border); padding-top: 16px;">
+    This document is <strong style="color:var(--accent)">CONFIDENTIAL</strong> and intended solely for authorized personnel of {{ company_name }}. Distribution without explicit written authorization is prohibited. Generated by SERAi — local analysis only, no data transmitted externally.
+  </div>
+</div>
+
+
+<!-- ══ EXECUTIVE SUMMARY ══ -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-title">// 01</div>
+    <div class="section-heading">Executive Summary</div>
+  </div>
+
+  <div class="card" style="border-left: 4px solid {{ risk_color }}; font-size: 12pt; line-height: 1.8;">
+    {{ executive_summary }}
+  </div>
+
+  <br/>
+  <div class="section-header">
+    <div class="section-title">// Risk Dimensions</div>
+    <div class="section-heading">Dimension Score Breakdown</div>
+  </div>
+
+  {% set dims = [
+    ('People', dimension_scores.people),
+    ('Technology', dimension_scores.technology),
+    ('Processes', dimension_scores.processes),
+    ('Digital Footprint', dimension_scores.digital_footprint),
+  ] %}
+  {% for label, score in dims %}
+  <div class="score-row">
+    <div class="score-label-row">
+      <span>{{ label }}</span>
+      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:
+        {% if score >= 75 %}#ef4444{% elif score >= 50 %}#f97316{% elif score >= 25 %}#eab308{% else %}#22c55e{% endif %}
+      ">{{ score }}/100</span>
+    </div>
+    <div class="score-bar-bg">
+      <div class="score-bar-fill" style="width: {{ score }}%; background:
+        {% if score >= 75 %}#ef4444{% elif score >= 50 %}#f97316{% elif score >= 25 %}#eab308{% else %}#22c55e{% endif %}
+      "></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+
+<!-- ══ PRIORITY TARGETS ══ -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-title">// 02</div>
+    <div class="section-heading">Priority Targets</div>
+  </div>
+
+  {% for target in priority_targets %}
+  <div class="target-card" style="border-left-color:
+    {% if target.risk_level in ['MAX','CRITICAL'] %}#ef4444
+    {% elif target.risk_level == 'HIGH' %}#f97316
+    {% elif target.risk_level == 'MEDIUM' %}#eab308
+    {% else %}#22c55e{% endif %}
+  ">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <div class="target-name">{{ target.name }}</div>
+      <span class="badge badge-{{ target.risk_level | lower }}">{{ target.risk_level }}</span>
+    </div>
+    <div class="target-role">{{ target.role }}</div>
+    <div style="margin-bottom:8px;">
+      {% for vec in target.attack_vectors %}
+      <span class="vector-tag">{{ vec }}</span>
+      {% endfor %}
+    </div>
+    <div style="font-size:10pt; color:var(--muted);">
+      <strong style="color:var(--text);">Protection:</strong> {{ target.protection }}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+
+<!-- ══ ATTACK SCENARIOS ══ -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-title">// 03</div>
+    <div class="section-heading">Attack Scenarios</div>
+  </div>
+
+  {% for scenario in attack_scenarios %}
+  <div class="card" style="margin-bottom:20px;">
+    <div class="scenario-header">
+      <div>
+        <div class="scenario-title">{{ scenario.title }}</div>
+        <span class="badge badge-{{ scenario.type }}">{{ scenario.type | upper }}</span>
+      </div>
+      <span class="mitre-tag">{{ scenario.mitre_technique }}</span>
+    </div>
+    <div style="font-size:10.5pt; color: #d4d4d4; line-height:1.6;">{{ scenario.description }}</div>
+    <div class="scenario-meta">
+      <span>Likelihood: <strong style="color:
+        {% if scenario.likelihood == 'HIGH' %}#ef4444{% elif scenario.likelihood == 'MEDIUM' %}#eab308{% else %}#22c55e{% endif %}
+      ">{{ scenario.likelihood }}</strong></span>
+      <span>Impact: <strong style="color:
+        {% if scenario.impact == 'HIGH' %}#ef4444{% elif scenario.impact == 'MEDIUM' %}#eab308{% else %}#22c55e{% endif %}
+      ">{{ scenario.impact }}</strong></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+
+<!-- ══ RECOMMENDATIONS ══ -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-title">// 04</div>
+    <div class="section-heading">Prioritized Recommendations</div>
+  </div>
+
+  {% for rec in recommendations %}
+  <div class="rec-card">
+    <div class="rec-number">{{ '%02d' % rec.priority }}</div>
+    <div style="flex:1;">
+      <div class="rec-title">{{ rec.title }}</div>
+      <div class="rec-desc">{{ rec.description }}</div>
+      <div class="rec-mitre">MITRE: {{ rec.mitre_mitigation }}</div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div style="margin-top: 40px; padding: 24px; border: 1px solid var(--border); background: var(--card); font-size: 9pt; color: var(--muted);">
+    <strong style="color: var(--accent);">DISCLAIMER</strong><br/>
+    This report was generated by SERAi using publicly available OSINT data and local AI analysis. All findings are based on information provided by the analyst. This tool is intended for authorized security assessments only. The organization conducting this assessment is solely responsible for obtaining proper authorization before any security testing activities.
+  </div>
+</div>
+
+<div class="footer">
+  <span>SERAi — Social Engineering Risk Analyzer</span>
+  <span>CONFIDENTIEL — {{ company_name }}</span>
+  <span>{{ formatted_date }}</span>
+</div>
+
+</body>
+</html>
