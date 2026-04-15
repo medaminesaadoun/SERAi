@@ -52,7 +52,16 @@
     -webkit-font-smoothing: antialiased;
     background-color: var(--bg-hex);
     transition: background-color 0.4s ease;
+    overflow-x: hidden;
   }
+
+  /* Minimum touch target on mobile */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Reset for inline/icon-only elements */
+  button.inline-touch { min-height: unset; min-width: unset; }
 
   h1, h2, h3, h4 {
     font-family: 'Chakra Petch', sans-serif;

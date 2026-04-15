@@ -87,16 +87,33 @@ export default function FormStepper({ onComplete }) {
         />
       </div>
 
-      {/* Step indicator — circles + connecting line */}
-      <div className="flex items-start mb-10 fade-in-up" style={{ animationDelay: '0.05s' }}>
+      {/* Step indicator */}
+      {/* Mobile: compact progress bar + label */}
+      <div className="sm:hidden mb-8 fade-in-up" style={{ animationDelay: '0.05s' }}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-mono text-xs text-accent">
+            Step {isSubmitStep ? STEPS.length + 1 : step + 1} of {STEPS.length + 1}
+          </span>
+          <span className="font-mono text-xs text-neutral-500">
+            {isSubmitStep ? 'Review' : STEPS[step]?.label}
+          </span>
+        </div>
+        <div className="h-1 bg-border rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent rounded-full transition-all duration-500"
+            style={{ width: `${((isSubmitStep ? STEPS.length : step) / STEPS.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: circles + connecting line */}
+      <div className="hidden sm:flex items-start mb-10 fade-in-up" style={{ animationDelay: '0.05s' }}>
         {STEPS.map((s, i) => {
-          const done    = i < step
-          const active  = i === step && !isSubmitStep
-          const future  = i > step || isSubmitStep
+          const done   = i < step
+          const active = i === step && !isSubmitStep
 
           return (
             <div key={s.id} className="flex items-start flex-1">
-              {/* Circle + label */}
               <div className="flex flex-col items-center gap-1.5 min-w-0">
                 <button
                   onClick={() => done && goTo(i)}
@@ -121,21 +138,16 @@ export default function FormStepper({ onComplete }) {
                     </svg>
                   ) : i + 1}
                 </button>
-
-                <span className={`text-xs font-mono text-center leading-tight hidden sm:block transition-colors duration-300
+                <span className={`text-xs font-mono text-center leading-tight transition-colors duration-300 hidden md:block
                   ${active ? 'text-accent' : done ? 'text-neutral-400' : 'text-neutral-700'}`}>
                   {s.label}
                 </span>
               </div>
-
-              {/* Connector line */}
               {i < STEPS.length - 1 && (
                 <div className="flex-1 relative mt-4 mx-1">
                   <div className="h-px bg-border w-full" />
-                  <div
-                    className="absolute top-0 left-0 h-px bg-accent transition-all duration-500 ease-out"
-                    style={{ width: done ? '100%' : '0%' }}
-                  />
+                  <div className="absolute top-0 left-0 h-px bg-accent transition-all duration-500 ease-out"
+                       style={{ width: done ? '100%' : '0%' }} />
                 </div>
               )}
             </div>

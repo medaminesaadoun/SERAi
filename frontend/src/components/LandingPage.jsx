@@ -66,7 +66,7 @@ export default function LandingPage({ onStart }) {
       <WelcomeBanner />
 
       {/* ══ HERO ══════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[90vh] flex flex-col justify-center py-16 overflow-hidden">
+      <section className="relative min-h-[85vh] flex flex-col justify-center py-10 sm:py-16 overflow-hidden">
 
         {/* Drifting grid */}
         <div
@@ -134,7 +134,7 @@ export default function LandingPage({ onStart }) {
           </div>
 
           {/* Two-column */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-start mt-6">
 
             {/* Left — text + CTA */}
             <div className="fade-in-up" style={{ animationDelay: '0.12s' }}>
@@ -146,7 +146,7 @@ export default function LandingPage({ onStart }) {
                 local AI model. All analysis stays on your machine — no cloud, no telemetry.
               </p>
 
-              <div className="flex flex-wrap gap-3 mb-12">
+              <div className="flex flex-wrap gap-3 mb-8 sm:mb-12">
                 <button
                   onClick={onStart}
                   className="serai-btn-primary text-base px-8 py-3.5 flex items-center gap-2"

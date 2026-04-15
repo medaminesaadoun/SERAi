@@ -136,15 +136,15 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
     <div className="max-w-5xl mx-auto">
 
       {/* ── Header ── */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-8 fade-in-up">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8 fade-in-up">
+        <div className="min-w-0">
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Analysis Complete</div>
-          <h1 className="text-2xl font-bold">{company_name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold truncate">{company_name}</h1>
           <div className="text-neutral-600 text-xs font-mono mt-1">{formattedDate}</div>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          <button onClick={onNewAnalysis} className="serai-btn-secondary">← New Analysis</button>
-          <button onClick={downloadPdf} disabled={downloading} className="serai-btn-primary flex items-center gap-2">
+        <div className="flex gap-3 shrink-0">
+          <button onClick={onNewAnalysis} className="serai-btn-secondary text-xs sm:text-sm">← New</button>
+          <button onClick={downloadPdf} disabled={downloading} className="serai-btn-primary flex items-center gap-2 text-xs sm:text-sm">
             {downloading
               ? <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
