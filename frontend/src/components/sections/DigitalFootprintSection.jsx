@@ -64,7 +64,7 @@ export default function DigitalFootprintSection({ data, setData }) {
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 04</div>
           <h2 className="text-xl font-bold text-white">Digital Footprint</h2>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-neutral-400 mt-1">
             Document the organization's online exposure across public sources.
           </p>
         </div>

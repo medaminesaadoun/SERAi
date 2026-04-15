@@ -24,7 +24,7 @@ export default function ProcessSection({ data, setData }) {
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 03</div>
           <h2 className="text-xl font-bold text-white">Process Leakage</h2>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-neutral-400 mt-1">
             Identify internal processes and workflows inadvertently disclosed publicly.
           </p>
         </div>

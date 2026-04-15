@@ -102,7 +102,7 @@ export default function PeopleSection({ data, setData }) {
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 01</div>
           <h2 className="text-xl font-bold text-white">People &amp; Org Exposure</h2>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-neutral-400 mt-1">
             Identify key employees exposed through LinkedIn, press releases, or public directories.
           </p>
         </div>
@@ -126,7 +126,7 @@ export default function PeopleSection({ data, setData }) {
         <div className="flex items-center justify-between mb-3">
           <div>
             <label className="serai-label mb-0">Key Employees Identified</label>
-            <p className="text-xs text-neutral-600 mt-0.5">Add the individuals most likely to be targeted</p>
+            <p className="text-xs text-neutral-500 mt-0.5">Add the individuals most likely to be targeted</p>
           </div>
           <button onClick={addEmployee} className="serai-btn-secondary text-xs py-1 px-3 shrink-0">
             + Add Employee
@@ -135,8 +135,8 @@ export default function PeopleSection({ data, setData }) {
 
         {data.employees.length === 0 && (
           <div className="border border-dashed border-border p-6 text-center space-y-2">
-            <p className="text-neutral-600 text-sm font-mono">No employees added yet.</p>
-            <p className="text-xs text-neutral-700">
+            <p className="text-neutral-400 text-sm font-mono">No employees added yet.</p>
+            <p className="text-xs text-neutral-500">
               Search LinkedIn for the target company and focus on C-suite, Finance, HR, and IT/Security roles.
             </p>
           </div>

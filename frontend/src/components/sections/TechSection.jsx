@@ -57,7 +57,7 @@ export default function TechSection({ data, setData }) {
         <div>
           <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 02</div>
           <h2 className="text-xl font-bold text-white">Technology Footprint</h2>
-          <p className="text-sm text-neutral-500 mt-1">
+          <p className="text-sm text-neutral-400 mt-1">
             Document the technology surface visible from outside the organization.
           </p>
         </div>

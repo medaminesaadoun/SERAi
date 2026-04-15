@@ -14,7 +14,7 @@ export function FieldGroup({ children, className = '' }) {
  */
 export function FieldHint({ children, always = false }) {
   return (
-    <p className={`field-hint text-xs text-neutral-600 leading-relaxed flex gap-1.5 ${always ? 'field-hint--always' : ''}`}>
+    <p className={`field-hint text-xs text-neutral-500 leading-relaxed flex gap-1.5 ${always ? 'field-hint--always' : ''}`}>
       <span className="shrink-0 mt-px" style={{ color: 'rgb(var(--color-accent) / 0.45)' }}>ℹ</span>
       <span>{children}</span>
     </p>

@@ -111,8 +111,8 @@
   }
 
   .serai-input {
-    @apply w-full text-neutral-200 px-3 py-2.5 text-sm rounded-sm
-           focus:outline-none placeholder:text-neutral-600 transition-all duration-200;
+    @apply w-full text-neutral-200 px-3 py-2.5 text-base rounded-sm
+           focus:outline-none placeholder:text-neutral-500 transition-all duration-200;
     background-color: rgb(var(--color-bg));
     border: 1px solid rgb(var(--color-border) / 0.7);
   }
@@ -123,7 +123,7 @@
 
   .serai-label {
     @apply block text-xs font-mono uppercase tracking-widest mb-1.5;
-    color: rgb(var(--color-accent) / 0.65);
+    color: rgb(var(--color-accent) / 0.9);
   }
 
   .serai-btn-primary {
