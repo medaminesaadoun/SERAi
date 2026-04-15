@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { ThemeProvider, useTheme } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
 import ThemeSwitcher from './components/ThemeSwitcher'
+import Toaster from './components/Toaster'
 import LandingPage from './components/LandingPage'
 import FormStepper from './components/FormStepper'
 import Dashboard from './components/Dashboard'
@@ -157,7 +159,10 @@ function AppInner() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppInner />
+      <ToastProvider>
+        <AppInner />
+        <Toaster />
+      </ToastProvider>
     </ThemeProvider>
   )
 }

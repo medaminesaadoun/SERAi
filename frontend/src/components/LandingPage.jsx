@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import RadarChart from './RadarChart'
+import { WelcomeBanner } from './OnboardingTooltip'
 
 const MOCK_SCORES = { people: 74, technology: 61, processes: 42, digital_footprint: 83 }
 
@@ -102,6 +103,8 @@ export default function LandingPage({ onStart }) {
 
   return (
     <div className="max-w-6xl mx-auto">
+
+      <WelcomeBanner />
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="min-h-[80vh] flex flex-col lg:flex-row items-center gap-12 py-16">

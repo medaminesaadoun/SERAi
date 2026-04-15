@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import RadarChart from './RadarChart'
+import { useToast } from '../context/ToastContext'
 
 const RISK_COLORS = {
   LOW:      { text: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30',  hex: '#22c55e' },
@@ -105,6 +106,7 @@ function Section({ title, prefix, children, delay = '0s' }) {
 export default function Dashboard({ analysis, onNewAnalysis }) {
   const { id, timestamp, company_name, result } = analysis
   const [downloading, setDownloading] = useState(false)
+  const { toast } = useToast()
 
   const riskStyle  = RISK_COLORS[result.risk_level] || RISK_COLORS.MEDIUM
   const formattedDate = (() => { try { return new Date(timestamp).toLocaleString() } catch { return timestamp } })()
@@ -112,6 +114,7 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
   async function downloadPdf() {
     setDownloading(true)
     try {
+      toast.info('Generating PDF report…', 3000)
       const res = await fetch(`/api/analyses/${id}/pdf`)
       if (!res.ok) throw new Error('PDF generation failed')
       const blob = await res.blob()
@@ -121,8 +124,9 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
       a.download = `SERAi-report-${company_name.replace(/\s+/g, '_')}.pdf`
       a.click()
       URL.revokeObjectURL(url)
+      toast.success('PDF downloaded successfully!')
     } catch (e) {
-      alert('PDF generation failed: ' + e.message)
+      toast.error('PDF generation failed: ' + e.message)
     } finally {
       setDownloading(false)
     }

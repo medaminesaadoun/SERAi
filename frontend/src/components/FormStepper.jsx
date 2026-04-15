@@ -4,6 +4,8 @@ import PeopleSection from './sections/PeopleSection'
 import TechSection from './sections/TechSection'
 import ProcessSection from './sections/ProcessSection'
 import DigitalFootprintSection from './sections/DigitalFootprintSection'
+import { ConsentTooltip } from './OnboardingTooltip'
+import { useToast } from '../context/ToastContext'
 
 const STEPS = [
   { id: 0, label: 'Personnes',          sublabel: 'People & org exposure'   },
@@ -32,7 +34,7 @@ export default function FormStepper({ onComplete }) {
   const [digitalFootprint, setDigital]  = useState(defaultDigitalFootprint)
 
   const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const { toast } = useToast()
 
   const sectionData = [
     { data: people,          setData: setPeople },
@@ -48,10 +50,9 @@ export default function FormStepper({ onComplete }) {
   }
 
   async function handleSubmit() {
-    if (!companyName.trim()) { setError('Company name is required.'); return }
-    if (!authorized) { setError('You must confirm authorization before submitting.'); return }
+    if (!companyName.trim()) { toast.warning('Company name is required.'); return }
+    if (!authorized) { toast.warning('You must confirm authorization before submitting.'); return }
     setLoading(true)
-    setError('')
     try {
       const res = await axios.post('/api/analyze', {
         company_name: companyName,
@@ -61,9 +62,10 @@ export default function FormStepper({ onComplete }) {
         processes,
         digital_footprint: digitalFootprint,
       }, { timeout: 180000 })
+      toast.success('Analysis complete!')
       onComplete(res.data)
     } catch (e) {
-      setError(e.response?.data?.detail || e.message || 'Analysis failed. Is Ollama running?')
+      toast.error(e.response?.data?.detail || e.message || 'Analysis failed. Is Ollama running?', 7000)
     } finally {
       setLoading(false)
     }
@@ -193,19 +195,13 @@ export default function FormStepper({ onComplete }) {
                   )}
                 </div>
               </div>
-              <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors leading-relaxed">
+              <span className="text-sm text-neutral-400 group-hover:text-neutral-300 transition-colors leading-relaxed flex-1">
                 I confirm I am <strong className="text-neutral-200">authorized</strong> to perform this security
                 assessment. This is for legitimate security testing with explicit written permission from the
                 organization's management.
               </span>
+              <ConsentTooltip />
             </label>
-
-            {error && (
-              <div className="bg-red-500/8 border border-red-500/25 text-red-400 px-4 py-3 font-mono text-sm rounded flex items-start gap-2">
-                <span className="mt-0.5">✗</span>
-                <span>{error}</span>
-              </div>
-            )}
           </div>
         )}
       </div>
