@@ -88,7 +88,7 @@ function DashboardSkeleton() {
   )
 }
 
-export default function AnalysisLoader({ company }) {
+export default function AnalysisLoader({ company, speed = 1, onComplete }) {
   const [completedSteps, setCompleted] = useState([])
   const [currentStep, setCurrent]      = useState(0)
 
@@ -99,17 +99,26 @@ export default function AnalysisLoader({ company }) {
     function advance() {
       if (stepIndex >= STEPS.length) return
       setCurrent(stepIndex)
-      const delay = STEP_MS[stepIndex] ?? 2000
+      // Last step has 99999ms delay — in demo we cap it and fire onComplete instead
+      const rawDelay = STEP_MS[stepIndex] ?? 2000
+      const delay    = rawDelay === 99999
+        ? (onComplete ? 400 : 99999)
+        : Math.round(rawDelay * speed)
+
       timeout = setTimeout(() => {
         setCompleted(prev => [...prev, stepIndex])
         stepIndex++
-        advance()
+        if (stepIndex >= STEPS.length && onComplete) {
+          onComplete()
+        } else {
+          advance()
+        }
       }, delay)
     }
 
     advance()
     return () => clearTimeout(timeout)
-  }, [])
+  }, [speed, onComplete])
 
   return (
     <div className="max-w-5xl mx-auto">

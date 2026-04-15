@@ -8,6 +8,8 @@ import LandingPage from './components/LandingPage'
 import FormStepper from './components/FormStepper'
 import Dashboard from './components/Dashboard'
 import AnalysisHistory from './components/AnalysisHistory'
+import AnalysisLoader from './components/AnalysisLoader'
+import { DEMO_ANALYSIS } from './data/demoAnalysis'
 
 const API = '/api'
 
@@ -77,6 +79,14 @@ function AppInner() {
   function navigate(v) { setView(v); setMenuOpen(false) }
   function handleAnalysisDone(data) { setAnalysis(data); setView('result') }
   function handleSelectHistory(data) { setAnalysis(data); setView('result') }
+  function handleDemo() {
+    setView('demo')
+    setMenuOpen(false)
+  }
+  function handleDemoComplete() {
+    setAnalysis({ ...DEMO_ANALYSIS, timestamp: new Date().toISOString() })
+    setView('result')
+  }
 
   const glassHeader = theme === 'glass'
     ? { backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }
@@ -174,8 +184,9 @@ function AppInner() {
 
       {/* ── Content ── */}
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-6xl mx-auto w-full relative z-10">
-        {view === 'home'    && <div className="fade-in-up"><LandingPage onStart={() => navigate('form')} /></div>}
+        {view === 'home'    && <div className="fade-in-up"><LandingPage onStart={() => navigate('form')} onDemo={handleDemo} /></div>}
         {view === 'form'    && <div className="fade-in-up"><FormStepper onComplete={handleAnalysisDone} /></div>}
+        {view === 'demo'    && <AnalysisLoader company="Acme Technologies" speed={0.28} onComplete={handleDemoComplete} />}
         {view === 'result'  && analysis && <div className="fade-in-up"><Dashboard analysis={analysis} onNewAnalysis={() => navigate('form')} /></div>}
         {view === 'history' && <div className="fade-in-up"><AnalysisHistory onSelect={handleSelectHistory} /></div>}
       </main>

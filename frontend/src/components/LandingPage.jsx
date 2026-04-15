@@ -53,7 +53,7 @@ const FLOW = [
   { step: '03', title: 'Get Your Report', desc: 'Review the interactive dashboard and download a CONFIDENTIEL-watermarked PDF report.' },
 ]
 
-export default function LandingPage({ onStart }) {
+export default function LandingPage({ onStart, onDemo }) {
   const [radarVisible, setRadarVisible] = useState(false)
 
   useEffect(() => {
@@ -156,9 +156,12 @@ export default function LandingPage({ onStart }) {
                   </svg>
                   Start Analysis
                 </button>
-                <a href="#how-it-works" className="serai-btn-secondary text-base flex items-center gap-2">
-                  How it works ↓
-                </a>
+                <button onClick={onDemo} className="serai-btn-secondary text-base flex items-center gap-2">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 shrink-0">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Try Demo
+                </button>
               </div>
 
               {/* Stats */}
@@ -325,15 +328,23 @@ export default function LandingPage({ onStart }) {
         <h2 className="font-display text-2xl font-bold mb-6 text-neutral-200">
           Start your first analysis in minutes
         </h2>
-        <button
-          onClick={onStart}
-          className="serai-btn-primary text-base px-10 py-4 inline-flex items-center gap-2"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
-          Start Analysis
-        </button>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button
+            onClick={onStart}
+            className="serai-btn-primary text-base px-10 py-4 inline-flex items-center gap-2"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            Start Analysis
+          </button>
+          <button onClick={onDemo} className="serai-btn-secondary text-base px-8 py-4 inline-flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 shrink-0">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Try Demo
+          </button>
+        </div>
       </section>
 
     </div>

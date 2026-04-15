@@ -135,6 +135,16 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
   return (
     <div className="max-w-5xl mx-auto">
 
+      {/* ── Demo banner ── */}
+      {analysis._isDemo && (
+        <div className="mb-6 px-4 py-3 rounded-sm border border-yellow-500/30 bg-yellow-500/5 flex items-center gap-3 fade-in-up">
+          <span className="font-mono text-xs font-bold text-yellow-400 shrink-0 uppercase tracking-widest">Demo</span>
+          <span className="text-xs text-yellow-400/70">
+            This is simulated data for demonstration purposes — no real analysis was performed.
+          </span>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8 fade-in-up">
         <div className="min-w-0">
