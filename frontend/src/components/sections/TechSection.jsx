@@ -1,48 +1,70 @@
+import { FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+
+const OSINT_TOOLS = [
+  { name: 'BuiltWith',    url: 'https://builtwith.com',         desc: 'Full tech stack from any domain' },
+  { name: 'Wappalyzer',   url: 'https://wappalyzer.com',        desc: 'Browser extension — real-time stack detection' },
+  { name: 'Shodan',       url: 'https://shodan.io',             desc: 'Exposed services, ports, banners' },
+  { name: 'Censys',       url: 'https://search.censys.io',      desc: 'Internet-wide scanning, TLS certs' },
+  { name: 'crt.sh',       url: 'https://crt.sh',                desc: 'Certificate transparency — reveals subdomains' },
+  { name: 'SecurityTrails',url: 'https://securitytrails.com',   desc: 'DNS history, subdomain enumeration' },
+]
+
+const FIELDS = [
+  {
+    key: 'public_tech_stack',
+    label: 'Publicly Known Tech Stack',
+    placeholder: 'e.g. React, Node.js, AWS, PostgreSQL',
+    rows: 2,
+    hint: 'Use BuiltWith or the Wappalyzer extension on their website. Job postings on LinkedIn/Indeed are goldmines — search "[Company] engineer" to see required skills.',
+  },
+  {
+    key: 'job_posting_tools',
+    label: 'Tools Revealed in Job Postings',
+    placeholder: 'e.g. Salesforce, Jira, Terraform, Kubernetes, Splunk',
+    rows: 2,
+    hint: 'Go to LinkedIn Jobs, Indeed, or Glassdoor and search the company name. Read "Requirements" sections carefully — they often list internal platforms verbatim.',
+  },
+  {
+    key: 'exposed_services',
+    label: 'Exposed Services / Portals',
+    placeholder: 'e.g. VPN login (Cisco AnyConnect), HR portal (Workday), open Grafana dashboard…',
+    rows: 2,
+    hint: 'Search Shodan for the company domain or IP range. Try common subdomains manually: vpn., mail., gitlab., jenkins., jira., confluence. Check crt.sh for subdomain enumeration.',
+  },
+  {
+    key: 'cloud_providers',
+    label: 'Cloud Providers (if known)',
+    placeholder: 'e.g. AWS (S3 bucket found), Azure AD (login redirect), GCP',
+    rows: 1,
+    hint: 'Azure AD reveals itself via login.microsoftonline.com redirects. AWS S3 URLs contain the region. GCP buckets follow storage.googleapis.com patterns. BuiltWith also flags CDN/cloud providers.',
+  },
+  {
+    key: 'frameworks_visible',
+    label: 'Frameworks / Libraries Visible',
+    placeholder: 'e.g. Next.js (via X-Powered-By header), jQuery 3.6 (HTML source), Nginx (Server header)…',
+    rows: 2,
+    hint: 'Open browser DevTools → Network tab → inspect response headers. Check HTML source for script tags. Look at error pages — they often expose framework versions. robots.txt and sitemap.xml reveal CMS structure.',
+  },
+]
+
 export default function TechSection({ data, setData }) {
-  const fields = [
-    {
-      key: 'public_tech_stack',
-      label: 'Publicly Known Tech Stack',
-      placeholder: 'e.g. React, Node.js, AWS, PostgreSQL (from job postings, BuiltWith, Wappalyzer)',
-      rows: 2,
-    },
-    {
-      key: 'job_posting_tools',
-      label: 'Tools Revealed in Job Postings',
-      placeholder: 'e.g. Salesforce, Jira, Terraform, Kubernetes, Splunk',
-      rows: 2,
-    },
-    {
-      key: 'exposed_services',
-      label: 'Exposed Services / Portals',
-      placeholder: 'e.g. VPN login page (Cisco AnyConnect), HR portal (Workday), exposed Jenkins, Grafana...',
-      rows: 2,
-    },
-    {
-      key: 'cloud_providers',
-      label: 'Cloud Providers (if known)',
-      placeholder: 'e.g. AWS (S3 bucket found), Azure AD (login redirect), GCP',
-      rows: 1,
-    },
-    {
-      key: 'frameworks_visible',
-      label: 'Frameworks / Libraries Visible',
-      placeholder: 'e.g. Detected via headers, error pages, HTML comments, robots.txt',
-      rows: 2,
-    },
-  ]
+  const progressValues = FIELDS.map(f => data[f.key])
 
   return (
     <div className="space-y-5">
-      <div>
-        <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 02</div>
-        <h2 className="text-xl font-bold text-white">Technologie</h2>
-        <p className="text-sm text-neutral-500 mt-1">
-          Document the technology surface visible from outside the organization.
-        </p>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 02</div>
+          <h2 className="text-xl font-bold text-white">Technology Footprint</h2>
+          <p className="text-sm text-neutral-500 mt-1">
+            Document the technology surface visible from outside the organization.
+          </p>
+        </div>
+        <SectionProgress values={progressValues} />
       </div>
 
-      {fields.map(({ key, label, placeholder, rows }) => (
+      {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
         <div key={key}>
           <label className="serai-label">{label}</label>
           <textarea
@@ -52,8 +74,11 @@ export default function TechSection({ data, setData }) {
             value={data[key]}
             onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
           />
+          <FieldHint>{hint}</FieldHint>
         </div>
       ))}
+
+      <OsintResources tools={OSINT_TOOLS} />
     </div>
   )
 }

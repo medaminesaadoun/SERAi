@@ -1,11 +1,21 @@
 import { useState } from 'react'
+import { FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+
+const OSINT_TOOLS = [
+  { name: 'LinkedIn',    url: 'https://linkedin.com',              desc: 'Employee profiles, org hierarchy, job titles' },
+  { name: 'Crunchbase',  url: 'https://crunchbase.com',            desc: 'Founders, executives, funding rounds' },
+  { name: 'Hunter.io',   url: 'https://hunter.io',                 desc: 'Email format discovery per domain' },
+  { name: 'RocketReach', url: 'https://rocketreach.co',            desc: 'Contact details for named individuals' },
+  { name: 'Glassdoor',   url: 'https://glassdoor.com',             desc: 'Manager names in reviews, org hints' },
+  { name: 'OSINT Ind.',  url: 'https://osintindustries.com',       desc: 'People search aggregator' },
+]
 
 function EmployeeRow({ emp, index, onChange, onRemove }) {
   return (
-    <div className="bg-[#111] border border-border p-4 space-y-3 relative">
+    <div className="bg-black/30 border border-border p-4 space-y-3 relative">
       <button
         onClick={() => onRemove(index)}
-        className="absolute top-3 right-3 text-neutral-600 hover:text-red-400 font-mono text-xs"
+        className="absolute top-3 right-3 text-neutral-600 hover:text-red-400 font-mono text-xs transition-colors"
         title="Remove"
       >
         ✕
@@ -20,15 +30,17 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
             value={emp.name}
             onChange={e => onChange(index, 'name', e.target.value)}
           />
+          <FieldHint>As it appears on LinkedIn or the company website</FieldHint>
         </div>
         <div>
           <label className="serai-label">Role / Title</label>
           <input
             className="serai-input"
-            placeholder="CTO, HR Manager, etc."
+            placeholder="CTO, HR Manager…"
             value={emp.role}
             onChange={e => onChange(index, 'role', e.target.value)}
           />
+          <FieldHint>Prioritise C-suite, IT, HR, and Finance — highest-value SE targets</FieldHint>
         </div>
       </div>
       <div>
@@ -39,6 +51,7 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
           value={emp.email_format}
           onChange={e => onChange(index, 'email_format', e.target.value)}
         />
+        <FieldHint>Hunter.io can infer this from the domain — enter one confirmed address as a pattern</FieldHint>
       </div>
       <div className="flex items-center gap-2">
         <input
@@ -57,6 +70,12 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
 }
 
 export default function PeopleSection({ data, setData }) {
+  const progressValues = [
+    data.total_employees_approx,
+    data.employees,
+    data.org_chart_exposed !== false ? data.org_chart_exposed : null,
+  ]
+
   function addEmployee() {
     setData(d => ({
       ...d,
@@ -78,36 +97,51 @@ export default function PeopleSection({ data, setData }) {
 
   return (
     <div className="space-y-5">
-      <div>
-        <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 01</div>
-        <h2 className="text-xl font-bold text-white">Personnes</h2>
-        <p className="text-sm text-neutral-500 mt-1">
-          Identify key employees exposed through LinkedIn, press releases, or public directories.
-        </p>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">// Section 01</div>
+          <h2 className="text-xl font-bold text-white">People &amp; Org Exposure</h2>
+          <p className="text-sm text-neutral-500 mt-1">
+            Identify key employees exposed through LinkedIn, press releases, or public directories.
+          </p>
+        </div>
+        <SectionProgress values={progressValues} />
       </div>
 
+      {/* Headcount */}
       <div>
         <label className="serai-label">Approximate Headcount</label>
         <input
           className="serai-input"
-          placeholder="e.g. 50-100, ~500, 1200+"
+          placeholder="e.g. 50–100, ~500, 1,200+"
           value={data.total_employees_approx}
           onChange={e => setData(d => ({ ...d, total_employees_approx: e.target.value }))}
         />
+        <FieldHint>LinkedIn "About" tab shows employee count. Crunchbase and company press releases often confirm it.</FieldHint>
       </div>
 
+      {/* Employees */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <label className="serai-label mb-0">Key Employees Identified</label>
-          <button onClick={addEmployee} className="serai-btn-secondary text-xs py-1 px-3">
+          <div>
+            <label className="serai-label mb-0">Key Employees Identified</label>
+            <p className="text-xs text-neutral-600 mt-0.5">Add the individuals most likely to be targeted</p>
+          </div>
+          <button onClick={addEmployee} className="serai-btn-secondary text-xs py-1 px-3 shrink-0">
             + Add Employee
           </button>
         </div>
+
         {data.employees.length === 0 && (
-          <div className="border border-dashed border-border p-6 text-center text-neutral-600 text-sm font-mono">
-            No employees added yet. Click "+ Add Employee" to begin.
+          <div className="border border-dashed border-border p-6 text-center space-y-2">
+            <p className="text-neutral-600 text-sm font-mono">No employees added yet.</p>
+            <p className="text-xs text-neutral-700">
+              Search LinkedIn for the target company and focus on C-suite, Finance, HR, and IT/Security roles.
+            </p>
           </div>
         )}
+
         <div className="space-y-3">
           {data.employees.map((emp, i) => (
             <EmployeeRow
@@ -121,6 +155,7 @@ export default function PeopleSection({ data, setData }) {
         </div>
       </div>
 
+      {/* Org chart */}
       <div className="border-t border-border pt-4 space-y-3">
         <div className="flex items-center gap-2">
           <input
@@ -134,19 +169,22 @@ export default function PeopleSection({ data, setData }) {
             Org chart / hierarchy publicly exposed
           </label>
         </div>
+        <FieldHint>Check the company website "Team" or "About" page, LinkedIn company page, and Glassdoor reviews that name managers.</FieldHint>
         {data.org_chart_exposed && (
           <div>
             <label className="serai-label">Details (where found, what's visible)</label>
             <textarea
               className="serai-input resize-none"
               rows={3}
-              placeholder="e.g. LinkedIn company page shows full reporting structure, website has team page with photos..."
+              placeholder="e.g. LinkedIn shows full reporting chain under CTO; website team page includes photos and direct reports…"
               value={data.org_chart_details}
               onChange={e => setData(d => ({ ...d, org_chart_details: e.target.value }))}
             />
           </div>
         )}
       </div>
+
+      <OsintResources tools={OSINT_TOOLS} />
     </div>
   )
 }
