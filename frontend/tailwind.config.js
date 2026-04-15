@@ -4,11 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0a0a0a',
-        card: '#1a1a1a',
-        border: '#2a2a2a',
-        accent: '#a3e635',
-        accent2: '#84cc16',
+        // CSS-variable-backed colors — all Tailwind utilities (including /opacity)
+        // will re-evaluate at runtime when the variable changes.
+        bg:      'rgb(var(--color-bg)      / <alpha-value>)',
+        card:    'rgb(var(--color-card)    / <alpha-value>)',
+        border:  'rgb(var(--color-border)  / <alpha-value>)',
+        accent:  'rgb(var(--color-accent)  / <alpha-value>)',
+        accent2: 'rgb(var(--color-accent2) / <alpha-value>)',
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', 'Consolas', 'monospace'],
