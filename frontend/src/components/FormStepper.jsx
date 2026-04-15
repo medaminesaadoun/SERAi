@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import AnalysisLoader from './AnalysisLoader'
+import { getRandomProfile } from '../data/sampleFills'
 import PeopleSection from './sections/PeopleSection'
 import TechSection from './sections/TechSection'
 import ProcessSection from './sections/ProcessSection'
@@ -43,6 +44,17 @@ export default function FormStepper({ onComplete }) {
     { data: processes,       setData: setProcesses },
     { data: digitalFootprint,setData: setDigital },
   ]
+
+  function quickFill() {
+    const p = getRandomProfile()
+    setCompanyName(p.company_name)
+    setPeople(p.people)
+    setTechnology(p.technology)
+    setProcesses(p.processes)
+    setDigital(p.digital_footprint)
+    setStep(0)
+    prevStep.current = 0
+  }
 
   function goTo(next) {
     setSlideClass(next > prevStep.current ? 'slide-from-right' : 'slide-from-left')
@@ -116,7 +128,23 @@ export default function FormStepper({ onComplete }) {
 
       {/* Company name */}
       <div className="mb-8 fade-in-up">
-        <label className="serai-label">Target Organization</label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="serai-label !mb-0">Target Organization</label>
+          <button
+            type="button"
+            onClick={quickFill}
+            className="flex items-center gap-1.5 font-mono text-xs text-neutral-500
+                       hover:text-accent transition-colors duration-200 group"
+            title="Fill with a randomized example organization"
+          >
+            <svg className="w-3 h-3 transition-transform duration-300 group-hover:rotate-180"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Quick fill
+          </button>
+        </div>
         <input
           className="serai-input text-base font-semibold"
           placeholder="Enter company / organization name"
