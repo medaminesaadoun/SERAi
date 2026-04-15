@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import axios from 'axios'
 import AnalysisLoader from './AnalysisLoader'
 import PeopleSection from './sections/PeopleSection'
 import TechSection from './sections/TechSection'
@@ -34,7 +33,8 @@ export default function FormStepper({ onComplete }) {
   const [processes, setProcesses]       = useState(defaultProcesses)
   const [digitalFootprint, setDigital]  = useState(defaultDigitalFootprint)
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]           = useState(false)
+  const [streamEvent, setStreamEvent]   = useState(null)
   const { toast } = useToast()
 
   const sectionData = [
@@ -54,19 +54,54 @@ export default function FormStepper({ onComplete }) {
     if (!companyName.trim()) { toast.warning('Company name is required.'); return }
     if (!authorized) { toast.warning('You must confirm authorization before submitting.'); return }
     setLoading(true)
+    setStreamEvent(null)
     try {
-      const res = await axios.post('/api/analyze', {
-        company_name: companyName,
-        authorized,
-        people,
-        technology,
-        processes,
-        digital_footprint: digitalFootprint,
-      }, { timeout: 180000 })
-      toast.success('Analysis complete!')
-      onComplete(res.data)
+      const response = await fetch('/api/analyze/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: companyName,
+          authorized,
+          people,
+          technology,
+          processes,
+          digital_footprint: digitalFootprint,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.detail || `Server error ${response.status}`)
+      }
+
+      const reader  = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer    = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            setStreamEvent(event)
+            if (event.type === 'done') {
+              toast.success('Analysis complete!')
+              onComplete(event.analysis)
+              return
+            }
+            if (event.type === 'error') throw new Error(event.message)
+          } catch (_) { /* skip malformed lines */ }
+        }
+      }
     } catch (e) {
-      toast.error(e.response?.data?.detail || e.message || 'Analysis failed. Is Ollama running?', 7000)
+      toast.error(e.message || 'Analysis failed. Is Ollama running?', 7000)
     } finally {
       setLoading(false)
     }
@@ -74,7 +109,7 @@ export default function FormStepper({ onComplete }) {
 
   const isSubmitStep = step === 4
 
-  if (loading) return <AnalysisLoader company={companyName} />
+  if (loading) return <AnalysisLoader company={companyName} streamEvent={streamEvent} />
 
   return (
     <div className="max-w-2xl mx-auto">

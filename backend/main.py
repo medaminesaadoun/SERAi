@@ -1,11 +1,12 @@
+import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pathlib import Path
 
 from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path, delete_analysis
-from llm import run_analysis, check_ollama_health
+from llm import run_analysis, check_ollama_health, stream_analysis
 from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse
 from pdf_generator import generate_pdf, PDF_AVAILABLE
 
@@ -72,6 +73,52 @@ async def analyze(request: AnalysisRequest):
         timestamp=stored["timestamp"],
         company_name=request.company_name,
         result=result,
+    )
+
+
+@app.post("/api/analyze/stream")
+async def analyze_stream(request: AnalysisRequest):
+    if not request.authorized:
+        raise HTTPException(
+            status_code=400,
+            detail="You must confirm authorization to perform this analysis.",
+        )
+
+    async def event_generator():
+        try:
+            yield f"data: {json.dumps({'type': 'connected'})}\n\n"
+
+            full_result = None
+            async for event_type, data in stream_analysis(request):
+                if event_type == "token":
+                    yield f"data: {json.dumps({'type': 'token', 'content': data})}\n\n"
+                elif event_type == "result":
+                    full_result = data
+
+            if full_result is None:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'No result produced by model'})}\n\n"
+                return
+
+            result_dict = full_result.model_dump()
+            analysis_id = await save_analysis(
+                company_name=request.company_name,
+                form_data=request.model_dump(),
+                analysis_result=result_dict,
+            )
+            stored = await get_analysis(analysis_id)
+            yield f"data: {json.dumps({'type': 'done', 'analysis': {'id': analysis_id, 'timestamp': stored['timestamp'], 'company_name': request.company_name, 'result': result_dict}})}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

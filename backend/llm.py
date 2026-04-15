@@ -140,6 +140,52 @@ async def get_available_model(client: httpx.AsyncClient) -> str:
     return PRIMARY_MODEL  # default; will fail gracefully
 
 
+async def stream_analysis(request: AnalysisRequest):
+    """Async generator: yields ('token', str) for each LLM chunk, then ('result', AnalysisResult)."""
+    async with httpx.AsyncClient() as client:
+        model = await get_available_model(client)
+        user_prompt = build_user_prompt(request)
+
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            "stream": True,
+            "options": {
+                "temperature": 0.1,
+                "num_predict": 4096,
+            },
+        }
+
+        full_content = ""
+        async with client.stream(
+            "POST",
+            f"{OLLAMA_URL}/api/chat",
+            json=payload,
+            timeout=httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0),
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.strip():
+                    continue
+                try:
+                    chunk = json.loads(line)
+                    token = chunk.get("message", {}).get("content", "")
+                    if token:
+                        full_content += token
+                        yield ("token", token)
+                    if chunk.get("done"):
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+        data = extract_json(full_content)
+        result = AnalysisResult(**data)
+        yield ("result", result)
+
+
 async def run_analysis(request: AnalysisRequest) -> AnalysisResult:
     async with httpx.AsyncClient(timeout=120.0) as client:
         model = await get_available_model(client)
