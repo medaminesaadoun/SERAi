@@ -9,7 +9,7 @@
 | Requirement | Version | Notes |
 |---|---|---|
 | Node.js | 18+ | For local dev |
-| Python | 3.11+ | For local dev |
+| Python | 3.12+ | For local dev |
 | Docker + Docker Compose | Latest | For containerized run |
 | Ollama | Latest | Must run on the **host** machine |
 
