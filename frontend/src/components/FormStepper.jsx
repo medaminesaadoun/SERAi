@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import axios from 'axios'
+import AnalysisLoader from './AnalysisLoader'
 import PeopleSection from './sections/PeopleSection'
 import TechSection from './sections/TechSection'
 import ProcessSection from './sections/ProcessSection'
@@ -72,6 +73,8 @@ export default function FormStepper({ onComplete }) {
   }
 
   const isSubmitStep = step === 4
+
+  if (loading) return <AnalysisLoader company={companyName} />
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -254,26 +257,6 @@ export default function FormStepper({ onComplete }) {
         )}
       </div>
 
-      {/* Progress hint when loading */}
-      {loading && (
-        <div className="mt-5 text-center fade-in-up">
-          <p className="font-mono text-xs text-neutral-500 mb-2">
-            Querying <span className="text-accent">qwen3.5:4b</span> locally — may take 30–90 s
-          </p>
-          <div className="relative h-px bg-border overflow-hidden rounded-full">
-            <div className="absolute inset-0 bg-accent/40 rounded-full"
-                 style={{ animation: 'shimmer-bar 1.8s ease-in-out infinite' }} />
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes shimmer-bar {
-          0%   { transform: translateX(-100%); opacity: 0.6; }
-          50%  { opacity: 1; }
-          100% { transform: translateX(100%);  opacity: 0.6; }
-        }
-      `}</style>
     </div>
   )
 }

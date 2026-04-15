@@ -278,3 +278,40 @@
 }
 .toast-in  { animation: toast-in  0.35s cubic-bezier(0.16,1,0.3,1) both; }
 .toast-out { animation: toast-out 0.3s  cubic-bezier(0.4,0,1,1)    both; }
+
+/* ══════════════════════════════════════════════════════
+   INTERACTION DESIGN
+   ══════════════════════════════════════════════════════ */
+
+/* Card hover lift — only on pointer devices */
+@media (hover: hover) {
+  .serai-card {
+    will-change: transform;
+  }
+  .serai-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+}
+
+/* Focus rings for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
