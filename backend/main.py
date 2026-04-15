@@ -4,10 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path
+from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path, delete_analysis
 from llm import run_analysis, check_ollama_health
-from models import AnalysisRequest, AnalysisResponse, AnalysisSummary, HealthResponse
-from pdf_generator import generate_pdf
+from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse
+from pdf_generator import generate_pdf, PDF_AVAILABLE
 
 
 @asynccontextmanager
@@ -86,7 +86,6 @@ async def get_analysis_detail(analysis_id: str):
     data = await get_analysis(analysis_id)
     if not data:
         raise HTTPException(status_code=404, detail="Analysis not found")
-    from models import AnalysisResult
     return AnalysisResponse(
         id=data["id"],
         timestamp=data["timestamp"],
@@ -95,13 +94,29 @@ async def get_analysis_detail(analysis_id: str):
     )
 
 
+@app.delete("/api/analyses/{analysis_id}", status_code=204)
+async def delete_analysis_route(analysis_id: str):
+    data = await get_analysis(analysis_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    pdf_path = data.get("pdf_path")
+    if pdf_path:
+        Path(pdf_path).unlink(missing_ok=True)
+    await delete_analysis(analysis_id)
+
+
 @app.get("/api/analyses/{analysis_id}/pdf")
 async def get_pdf(analysis_id: str):
+    if not PDF_AVAILABLE:
+        raise HTTPException(
+            status_code=501,
+            detail="PDF generation unavailable — install WeasyPrint with GTK3 system libraries.",
+        )
+
     data = await get_analysis(analysis_id)
     if not data:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    # Generate PDF if not already generated
     pdf_path = data.get("pdf_path")
     if not pdf_path or not Path(pdf_path).exists():
         try:

@@ -1,11 +1,16 @@
 import os
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
+try:
+    from weasyprint import HTML
+    PDF_AVAILABLE = True
+except (ImportError, OSError):
+    PDF_AVAILABLE = False
+    HTML = None
 from datetime import datetime
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
-PDF_DIR = Path("pdfs")
+PDF_DIR = Path(__file__).parent / "pdfs"
 PDF_DIR.mkdir(exist_ok=True)
 
 jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))

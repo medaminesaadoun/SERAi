@@ -1,6 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
-
 
 # ── Form input models ──────────────────────────────────────────────────────────
 
@@ -108,8 +106,8 @@ class AnalysisSummary(BaseModel):
     id: str
     timestamp: str
     company_name: str
-    global_score: Optional[int]
-    risk_level: Optional[str]
+    global_score: int | None
+    risk_level: str | None
 
 
 class HealthResponse(BaseModel):

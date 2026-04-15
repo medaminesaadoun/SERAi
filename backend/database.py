@@ -1,10 +1,10 @@
 import aiosqlite
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
-DB_PATH = Path("serai.db")
+DB_PATH = Path(__file__).parent / "serai.db"
 
 
 async def init_db():
@@ -26,7 +26,7 @@ async def init_db():
 
 async def save_analysis(company_name: str, form_data: dict, analysis_result: dict) -> str:
     analysis_id = str(uuid.uuid4())
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
@@ -52,6 +52,12 @@ async def update_pdf_path(analysis_id: str, pdf_path: str):
             "UPDATE analyses SET pdf_path = ? WHERE id = ?",
             (pdf_path, analysis_id),
         )
+        await db.commit()
+
+
+async def delete_analysis(analysis_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM analyses WHERE id = ?", (analysis_id,))
         await db.commit()
 
 
