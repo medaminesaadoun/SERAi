@@ -67,6 +67,7 @@ function AppInner() {
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ backgroundColor: 'var(--bg-hex)' }}>
+      <div id="grain-overlay" aria-hidden="true" />
 
       {/* Glass blobs */}
       {theme === 'glass' && (
