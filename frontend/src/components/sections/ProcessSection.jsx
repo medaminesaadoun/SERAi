@@ -1,4 +1,4 @@
-import { FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'Glassdoor',  url: 'https://glassdoor.com',         desc: 'Interview process leaks, internal tool mentions' },
@@ -45,9 +45,9 @@ export default function ProcessSection({ data, setData }) {
             Ticketing / issue-tracking system publicly visible
           </label>
         </div>
-        <FieldHint>Google: <em>"[company name]" site:jira.atlassian.com</em> or check if their GitHub Issues or ServiceNow portal is open. Shodan often indexes Jira instances.</FieldHint>
+        <FieldHint always>Google: <em>"[company name]" site:jira.atlassian.com</em> or check if their GitHub Issues or ServiceNow portal is open. Shodan often indexes Jira instances.</FieldHint>
         {data.ticketing_system_visible && (
-          <div>
+          <FieldGroup>
             <label className="serai-label">System Name &amp; Details</label>
             <input
               className="serai-input"
@@ -55,7 +55,7 @@ export default function ProcessSection({ data, setData }) {
               value={data.ticketing_system_name}
               onChange={e => setData(d => ({ ...d, ticketing_system_name: e.target.value }))}
             />
-          </div>
+          </FieldGroup>
         )}
       </div>
 
@@ -73,13 +73,13 @@ export default function ProcessSection({ data, setData }) {
             Onboarding / internal documentation found publicly
           </label>
         </div>
-        <FieldHint>
-          Try Google dorks: <em>site:notion.so "[company]"</em>, <em>site:confluence.atlassian.net "[company]"</em>, <em>site:docs.google.com "[company] onboarding"</em>. Glassdoor interview reviews often describe internal processes in detail.
+        <FieldHint always>
+          Try Google dorks: <em>site:notion.so "[company]"</em>, <em>site:confluence.atlassian.net "[company]"</em>. Glassdoor interview reviews often describe internal processes in detail.
         </FieldHint>
       </div>
 
       {/* Vendor relationships */}
-      <div>
+      <FieldGroup>
         <label className="serai-label">Known Vendor / Partner Relationships</label>
         <textarea
           className="serai-input resize-none"
@@ -88,11 +88,11 @@ export default function ProcessSection({ data, setData }) {
           value={data.vendor_relationships}
           onChange={e => setData(d => ({ ...d, vendor_relationships: e.target.value }))}
         />
-        <FieldHint>Check the company blog and press releases. LinkedIn posts by employees often tag vendors. Crunchbase lists investors and strategic partners. AWS/Azure/GCP partner finders are searchable.</FieldHint>
-      </div>
+        <FieldHint>Check the company blog and press releases. LinkedIn posts by employees often tag vendors. Crunchbase lists investors and strategic partners.</FieldHint>
+      </FieldGroup>
 
       {/* Process leaks */}
-      <div>
+      <FieldGroup>
         <label className="serai-label">Other Internal Process Leaks</label>
         <textarea
           className="serai-input resize-none"
@@ -101,8 +101,8 @@ export default function ProcessSection({ data, setData }) {
           value={data.internal_process_leaks}
           onChange={e => setData(d => ({ ...d, internal_process_leaks: e.target.value }))}
         />
-        <FieldHint>The Wayback Machine archives old internal pages. Employee LinkedIn posts and conference talks (YouTube, SlideShare) are rich sources of inadvertent process disclosure.</FieldHint>
-      </div>
+        <FieldHint>The Wayback Machine archives old internal pages. Employee LinkedIn posts and conference talks are rich sources of inadvertent process disclosure.</FieldHint>
+      </FieldGroup>
 
       <OsintResources tools={OSINT_TOOLS} />
     </div>

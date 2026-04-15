@@ -1,9 +1,20 @@
 /* Shared UI helpers for the OSINT form sections */
 
-/** Small hint line shown below a field */
-export function FieldHint({ children }) {
+/**
+ * Wrap a label + input/textarea + FieldHint in this.
+ * The hint is hidden by default and fades in on :focus-within (CSS only).
+ */
+export function FieldGroup({ children, className = '' }) {
+  return <div className={`field-group ${className}`}>{children}</div>
+}
+
+/**
+ * Hidden by default — revealed via .field-group:focus-within CSS rule.
+ * For non-focusable contexts (checkboxes), pass always={true} to keep it visible.
+ */
+export function FieldHint({ children, always = false }) {
   return (
-    <p className="mt-1.5 text-xs text-neutral-600 leading-relaxed flex gap-1.5">
+    <p className={`field-hint text-xs text-neutral-600 leading-relaxed flex gap-1.5 ${always ? 'field-hint--always' : ''}`}>
       <span className="shrink-0 mt-px" style={{ color: 'rgb(var(--color-accent) / 0.45)' }}>ℹ</span>
       <span>{children}</span>
     </p>

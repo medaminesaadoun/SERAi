@@ -1,4 +1,4 @@
-import { FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'BuiltWith',    url: 'https://builtwith.com',         desc: 'Full tech stack from any domain' },
@@ -65,7 +65,7 @@ export default function TechSection({ data, setData }) {
       </div>
 
       {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
-        <div key={key}>
+        <FieldGroup key={key}>
           <label className="serai-label">{label}</label>
           <textarea
             className="serai-input resize-none"
@@ -75,7 +75,7 @@ export default function TechSection({ data, setData }) {
             onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
           />
           <FieldHint>{hint}</FieldHint>
-        </div>
+        </FieldGroup>
       ))}
 
       <OsintResources tools={OSINT_TOOLS} />

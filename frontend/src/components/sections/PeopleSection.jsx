@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'LinkedIn',    url: 'https://linkedin.com',              desc: 'Employee profiles, org hierarchy, job titles' },
@@ -22,7 +22,7 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
       </button>
       <div className="font-mono text-xs text-accent mb-2">Employee #{index + 1}</div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
+        <FieldGroup>
           <label className="serai-label">Full Name</label>
           <input
             className="serai-input"
@@ -31,8 +31,8 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
             onChange={e => onChange(index, 'name', e.target.value)}
           />
           <FieldHint>As it appears on LinkedIn or the company website</FieldHint>
-        </div>
-        <div>
+        </FieldGroup>
+        <FieldGroup>
           <label className="serai-label">Role / Title</label>
           <input
             className="serai-input"
@@ -41,9 +41,9 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
             onChange={e => onChange(index, 'role', e.target.value)}
           />
           <FieldHint>Prioritise C-suite, IT, HR, and Finance — highest-value SE targets</FieldHint>
-        </div>
+        </FieldGroup>
       </div>
-      <div>
+      <FieldGroup>
         <label className="serai-label">Email Format (if known)</label>
         <input
           className="serai-input"
@@ -52,7 +52,7 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
           onChange={e => onChange(index, 'email_format', e.target.value)}
         />
         <FieldHint>Hunter.io can infer this from the domain — enter one confirmed address as a pattern</FieldHint>
-      </div>
+      </FieldGroup>
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
@@ -110,7 +110,7 @@ export default function PeopleSection({ data, setData }) {
       </div>
 
       {/* Headcount */}
-      <div>
+      <FieldGroup>
         <label className="serai-label">Approximate Headcount</label>
         <input
           className="serai-input"
@@ -119,7 +119,7 @@ export default function PeopleSection({ data, setData }) {
           onChange={e => setData(d => ({ ...d, total_employees_approx: e.target.value }))}
         />
         <FieldHint>LinkedIn "About" tab shows employee count. Crunchbase and company press releases often confirm it.</FieldHint>
-      </div>
+      </FieldGroup>
 
       {/* Employees */}
       <div>
@@ -169,9 +169,9 @@ export default function PeopleSection({ data, setData }) {
             Org chart / hierarchy publicly exposed
           </label>
         </div>
-        <FieldHint>Check the company website "Team" or "About" page, LinkedIn company page, and Glassdoor reviews that name managers.</FieldHint>
+        <FieldHint always>Check the company website "Team" or "About" page, LinkedIn company page, and Glassdoor reviews that name managers.</FieldHint>
         {data.org_chart_exposed && (
-          <div>
+          <FieldGroup className="mt-3">
             <label className="serai-label">Details (where found, what's visible)</label>
             <textarea
               className="serai-input resize-none"
@@ -180,7 +180,7 @@ export default function PeopleSection({ data, setData }) {
               value={data.org_chart_details}
               onChange={e => setData(d => ({ ...d, org_chart_details: e.target.value }))}
             />
-          </div>
+          </FieldGroup>
         )}
       </div>
 

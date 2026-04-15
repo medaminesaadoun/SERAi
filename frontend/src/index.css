@@ -294,6 +294,24 @@
   }
 }
 
+/* Progressive-disclosure field hints — reveal on focus */
+.field-group .field-hint {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  transition:
+    max-height 0.25s cubic-bezier(0.16,1,0.3,1),
+    opacity    0.2s  ease,
+    margin-top 0.25s ease;
+}
+.field-group:focus-within .field-hint,
+.field-hint--always {
+  max-height: 6rem;
+  opacity: 1;
+  margin-top: 0.375rem;
+}
+
 /* Focus rings for keyboard navigation */
 button:focus-visible,
 a:focus-visible,

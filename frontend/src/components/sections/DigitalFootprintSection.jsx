@@ -1,4 +1,4 @@
-import { FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'HaveIBeenPwned', url: 'https://haveibeenpwned.com',   desc: 'Domain breach check — leaked employee credentials' },
@@ -72,7 +72,7 @@ export default function DigitalFootprintSection({ data, setData }) {
       </div>
 
       {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
-        <div key={key}>
+        <FieldGroup key={key}>
           <label className="serai-label">{label}</label>
           <textarea
             className="serai-input resize-none"
@@ -82,7 +82,7 @@ export default function DigitalFootprintSection({ data, setData }) {
             onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
           />
           <FieldHint>{hint}</FieldHint>
-        </div>
+        </FieldGroup>
       ))}
 
       <OsintResources tools={OSINT_TOOLS} />
