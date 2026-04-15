@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const STEPS = [
   'Connecting to Ollama…',
@@ -92,6 +92,11 @@ export default function AnalysisLoader({ company, speed = 1, onComplete }) {
   const [completedSteps, setCompleted] = useState([])
   const [currentStep, setCurrent]      = useState(0)
 
+  // Keep onComplete in a ref so changing it (e.g. parent re-renders on theme switch)
+  // never restarts the effect and resets the animation.
+  const onCompleteRef = useRef(onComplete)
+  useEffect(() => { onCompleteRef.current = onComplete })
+
   useEffect(() => {
     let stepIndex = 0
     let timeout
@@ -99,17 +104,17 @@ export default function AnalysisLoader({ company, speed = 1, onComplete }) {
     function advance() {
       if (stepIndex >= STEPS.length) return
       setCurrent(stepIndex)
-      // Last step has 99999ms delay — in demo we cap it and fire onComplete instead
+      // Last step has 99999ms delay — cap it when a callback is provided (demo mode)
       const rawDelay = STEP_MS[stepIndex] ?? 2000
       const delay    = rawDelay === 99999
-        ? (onComplete ? 400 : 99999)
+        ? (onCompleteRef.current ? 400 : 99999)
         : Math.round(rawDelay * speed)
 
       timeout = setTimeout(() => {
         setCompleted(prev => [...prev, stepIndex])
         stepIndex++
-        if (stepIndex >= STEPS.length && onComplete) {
-          onComplete()
+        if (stepIndex >= STEPS.length && onCompleteRef.current) {
+          onCompleteRef.current()
         } else {
           advance()
         }
@@ -118,7 +123,9 @@ export default function AnalysisLoader({ company, speed = 1, onComplete }) {
 
     advance()
     return () => clearTimeout(timeout)
-  }, [speed, onComplete])
+  // speed is a static prop (0.28 for demo, 1 for real) — safe to depend on.
+  // onComplete is intentionally excluded: it lives in the ref above.
+  }, [speed])
 
   return (
     <div className="max-w-5xl mx-auto">
