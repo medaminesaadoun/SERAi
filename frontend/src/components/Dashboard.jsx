@@ -134,31 +134,14 @@ function ThreatMatrix({ likelihood, impact }) {
 /* ── Main dashboard ────────────────────────────────────────── */
 export default function Dashboard({ analysis, onNewAnalysis }) {
   const { id, timestamp, company_name, result } = analysis
-  const [downloading, setDownloading] = useState(false)
   const { toast } = useToast()
 
   const riskStyle     = RISK_COLORS[result.risk_level] || RISK_COLORS.MEDIUM
   const formattedDate = (() => { try { return new Date(timestamp).toLocaleString() } catch { return timestamp } })()
 
-  async function downloadPdf() {
-    setDownloading(true)
-    try {
-      toast.info('Generating PDF report…', 3000)
-      const res = await fetch(`/api/analyses/${id}/pdf`)
-      if (!res.ok) throw new Error('PDF generation failed')
-      const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
-      const a    = document.createElement('a')
-      a.href = url
-      a.download = `SERAi-report-${company_name.replace(/\s+/g, '_')}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('PDF downloaded successfully!')
-    } catch (e) {
-      toast.error('PDF generation failed: ' + e.message)
-    } finally {
-      setDownloading(false)
-    }
+  function downloadPdf() {
+    // Opens the printable HTML report in a new tab — use Ctrl+P / Save as PDF
+    window.open(`/api/analyses/${id}/report`, '_blank')
   }
 
   const priorityColor = (p) =>
@@ -202,14 +185,8 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
           </div>
           <div className="flex gap-2.5 shrink-0">
             <button onClick={onNewAnalysis} className="serai-btn-secondary text-xs">← New</button>
-            <button onClick={downloadPdf} disabled={downloading}
-                    className="serai-btn-primary flex items-center gap-2 text-xs">
-              {downloading
-                ? <><svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                    </svg>Generating…</>
-                : '↓ PDF Report'}
+            <button onClick={downloadPdf} className="serai-btn-primary text-xs">
+              ↓ PDF Report
             </button>
           </div>
         </div>

@@ -92,7 +92,9 @@ Respond with ONLY this JSON structure (no markdown, no explanation):
     }}
   ],
   "executive_summary": "<2-3 non-technical sentences summarizing overall risk>"
-}}"""
+}}
+
+/no_think"""
     return prompt
 
 
@@ -153,6 +155,7 @@ async def stream_analysis(request: AnalysisRequest):
                 {"role": "user", "content": user_prompt},
             ],
             "stream": True,
+            "think": False,
             "options": {
                 "temperature": 0.1,
                 "num_predict": 4096,
@@ -160,23 +163,39 @@ async def stream_analysis(request: AnalysisRequest):
         }
 
         full_content = ""
+        print(f"[STREAM] opening httpx stream to {OLLAMA_URL}", flush=True)
         async with client.stream(
             "POST",
             f"{OLLAMA_URL}/api/chat",
             json=payload,
             timeout=httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0),
         ) as response:
+            print(f"[STREAM] connected, status={response.status_code}", flush=True)
             response.raise_for_status()
+            line_count = 0
             async for line in response.aiter_lines():
+                line_count += 1
+                if line_count <= 3:
+                    try:
+                        _dbg = json.loads(line)
+                        print(f"[STREAM] line #{line_count} message={_dbg.get('message',{})}", flush=True)
+                    except Exception:
+                        pass
                 if not line.strip():
                     continue
                 try:
                     chunk = json.loads(line)
-                    token = chunk.get("message", {}).get("content", "")
-                    if token:
-                        full_content += token
-                        yield ("token", token)
+                    msg = chunk.get("message", {})
+                    content = msg.get("content", "")
+                    thinking = msg.get("thinking", "")
+                    if content:
+                        full_content += content
+                        yield ("token", content)
+                    elif thinking:
+                        # Thinking phase — stream for display but exclude from JSON
+                        yield ("thinking", thinking)
                     if chunk.get("done"):
+                        print(f"[STREAM] done after {line_count} lines, content chars={len(full_content)}", flush=True)
                         break
                 except json.JSONDecodeError:
                     continue
@@ -201,6 +220,7 @@ async def run_analysis(request: AnalysisRequest) -> AnalysisResult:
                         {"role": "user", "content": user_prompt},
                     ],
                     "stream": False,
+                    "think": False,
                     "options": {
                         "temperature": 0.1,
                         "num_predict": 4096,
@@ -229,6 +249,43 @@ async def run_analysis(request: AnalysisRequest) -> AnalysisResult:
         raise RuntimeError(
             f"LLM analysis failed after {MAX_RETRIES} attempts. Last error: {last_error}"
         )
+
+
+async def test_model_inference() -> dict:
+    """Send a minimal prompt to the model and return timing + first tokens."""
+    import time
+    async with httpx.AsyncClient() as client:
+        model = await get_available_model(client)
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": "Reply with the single word: READY"}],
+            "stream": False,
+            "options": {"temperature": 0, "num_predict": 16},
+        }
+        start = time.monotonic()
+        try:
+            resp = await client.post(
+                f"{OLLAMA_URL}/api/chat",
+                json=payload,
+                timeout=httpx.Timeout(connect=5.0, read=60.0, write=5.0, pool=5.0),
+            )
+            resp.raise_for_status()
+            elapsed = round(time.monotonic() - start, 2)
+            content = resp.json()["message"]["content"].strip()
+            return {
+                "ok": True,
+                "model": model,
+                "response": content,
+                "elapsed_s": elapsed,
+            }
+        except Exception as e:
+            elapsed = round(time.monotonic() - start, 2)
+            return {
+                "ok": False,
+                "model": model,
+                "error": str(e),
+                "elapsed_s": elapsed,
+            }
 
 
 async def check_ollama_health() -> dict:

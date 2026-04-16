@@ -68,7 +68,12 @@ export default function FormStepper({ onComplete }) {
     setLoading(true)
     setStreamEvent(null)
     try {
-      const response = await fetch('/api/analyze/stream', {
+      // Go directly to the backend in dev — Vite's proxy buffers SSE responses.
+      const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+      const url = `${base}/api/analyze/stream`
+      console.log('[SSE] Connecting to', url)
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -81,6 +86,8 @@ export default function FormStepper({ onComplete }) {
         }),
       })
 
+      console.log('[SSE] Response status', response.status, response.headers.get('content-type'))
+
       if (!response.ok) {
         const err = await response.json().catch(() => ({}))
         throw new Error(err.detail || `Server error ${response.status}`)
@@ -89,12 +96,16 @@ export default function FormStepper({ onComplete }) {
       const reader  = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer    = ''
+      let chunkCount = 0
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) { console.log('[SSE] Stream closed'); break }
 
-        buffer += decoder.decode(value, { stream: true })
+        chunkCount++
+        const raw = decoder.decode(value, { stream: true })
+        console.log(`[SSE] chunk #${chunkCount}:`, JSON.stringify(raw.slice(0, 120)))
+        buffer += raw
         const lines = buffer.split('\n')
         buffer = lines.pop() // keep incomplete line
 
@@ -102,6 +113,7 @@ export default function FormStepper({ onComplete }) {
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
+            if (event.type !== 'token') console.log('[SSE] event:', event.type, event)
             setStreamEvent(event)
             if (event.type === 'done') {
               toast.success('Analysis complete!')

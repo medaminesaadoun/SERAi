@@ -168,16 +168,18 @@ export default function AnalysisLoader({ company, speed = 1, onComplete, streamE
   }, [speed, isStreamMode])
 
   // ── Streaming mode state ──
-  const [streamPhase,   setStreamPhase]   = useState('connecting')
-  const [tokenBuffer,   setTokenBuffer]   = useState('')
+  const [streamPhase,    setStreamPhase]   = useState('connecting')
+  const [thinkBuffer,    setThinkBuffer]   = useState('')
+  const [tokenBuffer,    setTokenBuffer]   = useState('')
   const tokenBoxRef = useRef(null)
 
   useEffect(() => {
     if (!streamEvent) return
     if (streamEvent.type === 'connected')  setStreamPhase('generating')
+    if (streamEvent.type === 'thinking')   setThinkBuffer(prev => prev + streamEvent.content)
     if (streamEvent.type === 'token')      setTokenBuffer(prev => prev + streamEvent.content)
     if (streamEvent.type === 'done')       setStreamPhase('done')
-    if (streamEvent.type === 'error')      setStreamPhase('connecting') // reset to show error state
+    if (streamEvent.type === 'error')      setStreamPhase('connecting')
   }, [streamEvent])
 
   // Auto-scroll token box
@@ -227,15 +229,38 @@ export default function AnalysisLoader({ company, speed = 1, onComplete, streamE
         <StepList steps={steps} completedSteps={completedSteps} currentStep={currentStep} />
 
         {/* Live token output (streaming mode only) */}
-        {isStreamMode && tokenBuffer && (
-          <div
-            ref={tokenBoxRef}
-            className="mt-4 p-3 rounded border border-border/40 bg-black/30 font-mono text-xs
-                       text-neutral-500 leading-relaxed overflow-y-auto"
-            style={{ maxHeight: '140px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-          >
-            {tokenBuffer}
-            <span className="inline-block w-1.5 h-3 bg-accent/60 animate-pulse ml-0.5 align-middle" />
+        {isStreamMode && (
+          <div className="mt-4 rounded border border-border/50 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-white/[0.03] border-b border-border/40">
+              <span className="font-mono text-xs text-neutral-500">
+                {tokenBuffer.length > 0 ? 'model output' : thinkBuffer.length > 0 ? 'thinking…' : 'model output'}
+              </span>
+              <span className="font-mono text-xs text-accent/60">
+                {tokenBuffer.length > 0
+                  ? `${tokenBuffer.length} chars`
+                  : thinkBuffer.length > 0
+                    ? `${thinkBuffer.length} thought chars`
+                    : 'waiting…'}
+              </span>
+            </div>
+            <div
+              ref={tokenBoxRef}
+              className="p-3 font-mono text-xs leading-relaxed overflow-y-auto bg-black/40"
+              style={{ minHeight: '120px', maxHeight: '260px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+            >
+              {tokenBuffer.length > 0
+                ? <span className="text-neutral-300">
+                    {tokenBuffer}
+                    <span className="inline-block w-1.5 h-3 bg-accent animate-pulse ml-0.5 align-middle" />
+                  </span>
+                : thinkBuffer.length > 0
+                  ? <span className="text-neutral-600 italic">
+                      {thinkBuffer}
+                      <span className="inline-block w-1.5 h-3 bg-neutral-600 animate-pulse ml-0.5 align-middle" />
+                    </span>
+                  : <span className="text-neutral-600">Waiting for first token…</span>
+              }
+            </div>
           </div>
         )}
 
