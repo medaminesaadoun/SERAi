@@ -196,7 +196,7 @@ function AppInner() {
               style={glassHeader}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1
                         text-neutral-700 font-mono text-xs">
-          <span>SERAi v1.0 — Local-only · No data leaves your machine</span>
+          <span>SERAi v1.0 - Local-only · No data leaves your machine</span>
           <span>For authorized security assessments only</span>
         </div>
       </footer>

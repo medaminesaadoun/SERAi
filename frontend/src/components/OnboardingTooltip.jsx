@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 
 const STORAGE_KEY = 'serai-onboarded'
 
-/* Small "?" trigger — popover is portalled to body to escape overflow:hidden */
+/* Small "?" trigger - popover is portalled to body to escape overflow:hidden */
 export function ConsentTooltip() {
   const [open, setOpen]   = useState(false)
   const [pos, setPos]     = useState({ top: 0, left: 0 })
@@ -103,7 +103,7 @@ export function ConsentTooltip() {
   )
 }
 
-/* First-visit welcome banner — shown once on the landing page */
+/* First-visit welcome banner - shown once on the landing page */
 export function WelcomeBanner() {
   const [visible, setVisible] = useState(false)
 
@@ -131,7 +131,7 @@ export function WelcomeBanner() {
           <p className="text-xs text-neutral-500 leading-relaxed">
             This tool is for <strong className="text-neutral-300">authorized security assessments only</strong>.
             Before running an analysis, make sure you have written permission from the target organization.
-            All processing is local — nothing leaves your machine.
+            All processing is local - nothing leaves your machine.
           </p>
         </div>
         <button

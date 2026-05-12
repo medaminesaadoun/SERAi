@@ -226,7 +226,7 @@ function RecSwimlane({ recommendations }) {
             {/* Rec cards */}
             <div className="space-y-2">
               {recs.length === 0 ? (
-                <div className="font-mono text-xs text-neutral-800 py-2">—</div>
+                <div className="font-mono text-xs text-neutral-800 py-2">-</div>
               ) : recs.map((rec, i) => (
                 <div key={i} className="p-3 rounded-sm"
                      style={{ border: `1px solid ${color}22`, backgroundColor: `${color}06` }}>
@@ -273,7 +273,7 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
              style={{ borderColor: 'rgba(234,179,8,0.25)', backgroundColor: 'rgba(234,179,8,0.04)' }}>
           <span className="font-mono text-xs font-bold text-yellow-400 shrink-0 uppercase tracking-widest">Demo</span>
           <div className="w-px h-3 bg-yellow-500/30 shrink-0" />
-          <span className="text-xs text-yellow-400/60">Simulated data — no real analysis was performed</span>
+          <span className="text-xs text-yellow-400/60">Simulated data - no real analysis was performed</span>
         </div>
       )}
 
@@ -355,7 +355,7 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
               {isAtk ? 'Highest Exposure' : 'Priority to Harden'}
             </div>
             <div className="font-bold text-sm" style={{ color: isAtk ? riskStyle.hex : '#22c55e' }}>
-              {weakest.label} — {weakest.score}/100
+              {weakest.label} - {weakest.score}/100
             </div>
           </div>
 

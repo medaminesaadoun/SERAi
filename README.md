@@ -1,4 +1,4 @@
-# SERAi — Social Engineering Risk Analyzer
+# SERAi - Social Engineering Risk Analyzer
 
 > **LOCAL-ONLY** cybersecurity tool for assessing an organization's social engineering attack surface using public OSINT data and a local LLM. **No data ever leaves your machine.**
 
@@ -165,7 +165,7 @@ serai/
 - The authorization checkbox in the UI is a legal acknowledgement, not a formality
 - Unauthorized security testing may violate computer crime laws in your jurisdiction
 - The authors assume no liability for misuse of this tool
-- All analysis data is stored locally only — no telemetry, no cloud sync, no external calls (except to your local Ollama instance)
+- All analysis data is stored locally only - no telemetry, no cloud sync, no external calls (except to your local Ollama instance)
 
 ---
 

@@ -43,7 +43,7 @@ class DigitalFootprintData(BaseModel):
 
 class AnalysisRequest(BaseModel):
     company_name: str
-    authorized: bool                  # consent checkbox — must be True
+    authorized: bool                  # consent checkbox - must be True
     people: PeopleData
     technology: TechData
     processes: ProcessData

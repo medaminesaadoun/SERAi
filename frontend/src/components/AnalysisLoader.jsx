@@ -221,7 +221,7 @@ export default function AnalysisLoader({ company, speed = 1, onComplete, streamE
             <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
           </div>
           <span className="font-mono text-xs text-neutral-600 ml-2">
-            serai — analyzing {company}
+            serai - analyzing {company}
           </span>
         </div>
 

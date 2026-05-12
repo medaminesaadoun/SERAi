@@ -1,4 +1,30 @@
 /* Shared UI helpers for the OSINT form sections */
+import { useRef, useEffect } from 'react'
+
+/**
+ * Textarea that grows to fit its content - no fixed height, no inner scroll.
+ */
+export function AutoTextarea({ className = '', minRows = 2, value, onChange, ...props }) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [value])
+
+  return (
+    <textarea
+      ref={ref}
+      className={`${className} overflow-hidden`}
+      rows={minRows}
+      value={value}
+      onChange={onChange}
+      {...props}
+    />
+  )
+}
 
 /**
  * Wrap a label + input/textarea + FieldHint in this.
@@ -9,7 +35,7 @@ export function FieldGroup({ children, className = '' }) {
 }
 
 /**
- * Hidden by default — revealed via .field-group:focus-within CSS rule.
+ * Hidden by default - revealed via .field-group:focus-within CSS rule.
  * For non-focusable contexts (checkboxes), pass always={true} to keep it visible.
  */
 export function FieldHint({ children, always = false }) {
@@ -23,7 +49,7 @@ export function FieldHint({ children, always = false }) {
 
 /**
  * Section completion bar.
- * values: array of anything — a value "counts" if it's truthy, or > 0 for arrays.
+ * values: array of anything - a value "counts" if it's truthy, or > 0 for arrays.
  */
 export function SectionProgress({ values }) {
   const filled = values.filter(v =>

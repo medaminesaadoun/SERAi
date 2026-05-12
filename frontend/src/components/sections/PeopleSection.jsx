@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources, AutoTextarea } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'LinkedIn',    url: 'https://linkedin.com',              desc: 'Employee profiles, org hierarchy, job titles' },
@@ -40,7 +40,7 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
             value={emp.role}
             onChange={e => onChange(index, 'role', e.target.value)}
           />
-          <FieldHint>Prioritise C-suite, IT, HR, and Finance — highest-value SE targets</FieldHint>
+          <FieldHint>Prioritise C-suite, IT, HR, and Finance - highest-value SE targets</FieldHint>
         </FieldGroup>
       </div>
       <FieldGroup>
@@ -51,7 +51,7 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
           value={emp.email_format}
           onChange={e => onChange(index, 'email_format', e.target.value)}
         />
-        <FieldHint>Hunter.io can infer this from the domain — enter one confirmed address as a pattern</FieldHint>
+        <FieldHint>Hunter.io can infer this from the domain - enter one confirmed address as a pattern</FieldHint>
       </FieldGroup>
       <div className="flex items-center gap-2">
         <input
@@ -113,7 +113,7 @@ export default function PeopleSection({ data, setData }) {
       <FieldGroup>
         <label className="serai-label">Approximate Headcount</label>
         <input
-          className="serai-input"
+          className="serai-input max-w-xs"
           placeholder="e.g. 50–100, ~500, 1,200+"
           value={data.total_employees_approx}
           onChange={e => setData(d => ({ ...d, total_employees_approx: e.target.value }))}
@@ -173,9 +173,9 @@ export default function PeopleSection({ data, setData }) {
         {data.org_chart_exposed && (
           <FieldGroup className="mt-3">
             <label className="serai-label">Details (where found, what's visible)</label>
-            <textarea
-              className="serai-input resize-none"
-              rows={3}
+            <AutoTextarea
+              className="serai-input"
+              minRows={3}
               placeholder="e.g. LinkedIn shows full reporting chain under CTO; website team page includes photos and direct reports…"
               value={data.org_chart_details}
               onChange={e => setData(d => ({ ...d, org_chart_details: e.target.value }))}

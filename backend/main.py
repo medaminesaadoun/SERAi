@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="SERAi API",
-    description="Social Engineering Risk Analyzer — local-only, powered by Ollama",
+    description="Social Engineering Risk Analyzer - local-only, powered by Ollama",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -78,7 +78,7 @@ async def analyze(request: AnalysisRequest):
 
 @app.get("/api/health/test")
 async def health_test():
-    """Actually run a minimal inference call — confirms the model is loaded and generating."""
+    """Actually run a minimal inference call - confirms the model is loaded and generating."""
     return await test_model_inference()
 
 
@@ -218,7 +218,7 @@ async def get_pdf(analysis_id: str):
     if not PDF_AVAILABLE:
         raise HTTPException(
             status_code=501,
-            detail="PDF generation unavailable — install WeasyPrint with GTK3 system libraries.",
+            detail="PDF generation unavailable - install WeasyPrint with GTK3 system libraries.",
         )
 
     data = await get_analysis(analysis_id)

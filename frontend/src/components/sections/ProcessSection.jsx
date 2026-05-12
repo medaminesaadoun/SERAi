@@ -1,4 +1,4 @@
-import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources, AutoTextarea } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'Glassdoor',  url: 'https://glassdoor.com',         desc: 'Interview process leaks, internal tool mentions' },
@@ -78,31 +78,32 @@ export default function ProcessSection({ data, setData }) {
         </FieldHint>
       </div>
 
-      {/* Vendor relationships */}
-      <FieldGroup>
-        <label className="serai-label">Known Vendor / Partner Relationships</label>
-        <textarea
-          className="serai-input resize-none"
-          rows={2}
-          placeholder="e.g. AWS Premier Partner, uses Salesforce (named in press release), Microsoft Gold Partner…"
-          value={data.vendor_relationships}
-          onChange={e => setData(d => ({ ...d, vendor_relationships: e.target.value }))}
-        />
-        <FieldHint>Check the company blog and press releases. LinkedIn posts by employees often tag vendors. Crunchbase lists investors and strategic partners.</FieldHint>
-      </FieldGroup>
+      {/* Vendor relationships + Process leaks - side by side on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FieldGroup>
+          <label className="serai-label">Known Vendor / Partner Relationships</label>
+          <AutoTextarea
+            className="serai-input"
+            minRows={3}
+            placeholder="e.g. AWS Premier Partner, uses Salesforce (named in press release), Microsoft Gold Partner…"
+            value={data.vendor_relationships}
+            onChange={e => setData(d => ({ ...d, vendor_relationships: e.target.value }))}
+          />
+          <FieldHint>Check the company blog and press releases. LinkedIn posts by employees often tag vendors. Crunchbase lists investors and strategic partners.</FieldHint>
+        </FieldGroup>
 
-      {/* Process leaks */}
-      <FieldGroup>
-        <label className="serai-label">Other Internal Process Leaks</label>
-        <textarea
-          className="serai-input resize-none"
-          rows={3}
-          placeholder="e.g. Approval workflows described in public blog posts, interview questions on Glassdoor reveal security procedures, supply chain partners named in annual reports…"
-          value={data.internal_process_leaks}
-          onChange={e => setData(d => ({ ...d, internal_process_leaks: e.target.value }))}
-        />
-        <FieldHint>The Wayback Machine archives old internal pages. Employee LinkedIn posts and conference talks are rich sources of inadvertent process disclosure.</FieldHint>
-      </FieldGroup>
+        <FieldGroup>
+          <label className="serai-label">Other Internal Process Leaks</label>
+          <AutoTextarea
+            className="serai-input"
+            minRows={3}
+            placeholder="e.g. Approval workflows described in public blog posts, interview questions on Glassdoor reveal security procedures, supply chain partners named in annual reports…"
+            value={data.internal_process_leaks}
+            onChange={e => setData(d => ({ ...d, internal_process_leaks: e.target.value }))}
+          />
+          <FieldHint>The Wayback Machine archives old internal pages. Employee LinkedIn posts and conference talks are rich sources of inadvertent process disclosure.</FieldHint>
+        </FieldGroup>
+      </div>
 
       <OsintResources tools={OSINT_TOOLS} />
     </div>

@@ -283,7 +283,7 @@
    INTERACTION DESIGN
    ══════════════════════════════════════════════════════ */
 
-/* Card hover lift — only on pointer devices */
+/* Card hover lift - only on pointer devices */
 @media (hover: hover) {
   .serai-card {
     will-change: transform;
@@ -294,7 +294,7 @@
   }
 }
 
-/* Progressive-disclosure field hints — reveal on focus */
+/* Progressive-disclosure field hints - reveal on focus */
 .field-group .field-hint {
   max-height: 0;
   opacity: 0;

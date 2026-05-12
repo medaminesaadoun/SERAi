@@ -136,14 +136,14 @@ export default function LandingPage({ onStart, onDemo }) {
           {/* Two-column */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-start mt-6">
 
-            {/* Left — text + CTA */}
+            {/* Left - text + CTA */}
             <div className="fade-in-up" style={{ animationDelay: '0.12s' }}>
               <p className="font-display text-lg text-neutral-400 leading-relaxed mb-3">
                 Social Engineering Risk Analyzer
               </p>
               <p className="text-neutral-600 leading-relaxed mb-8 max-w-md">
                 Assess your organization's attack surface using public OSINT data and a
-                local AI model. All analysis stays on your machine — no cloud, no telemetry.
+                local AI model. All analysis stays on your machine - no cloud, no telemetry.
               </p>
 
               <div className="flex flex-wrap gap-3 mb-8 sm:mb-12">
@@ -181,7 +181,7 @@ export default function LandingPage({ onStart, onDemo }) {
               </div>
             </div>
 
-            {/* Right — preview card */}
+            {/* Right - preview card */}
             <div className="fade-in-up relative" style={{ animationDelay: '0.18s' }}>
               <div className="serai-card p-5 relative">
                 <div className="flex items-center justify-between mb-4">
@@ -313,7 +313,7 @@ export default function LandingPage({ onStart, onDemo }) {
             <div className="text-sm text-neutral-500 leading-relaxed">
               SERAi is strictly for security professionals with explicit written authorization from the target
               organization. Unauthorized security testing may violate computer crime laws in your jurisdiction.
-              All analysis is performed locally — no data is ever transmitted to external servers.
+              All analysis is performed locally - no data is ever transmitted to external servers.
             </div>
           </div>
         </div>

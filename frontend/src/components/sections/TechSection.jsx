@@ -1,11 +1,11 @@
-import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources, AutoTextarea } from './FormHelpers'
 
 const OSINT_TOOLS = [
   { name: 'BuiltWith',    url: 'https://builtwith.com',         desc: 'Full tech stack from any domain' },
-  { name: 'Wappalyzer',   url: 'https://wappalyzer.com',        desc: 'Browser extension — real-time stack detection' },
+  { name: 'Wappalyzer',   url: 'https://wappalyzer.com',        desc: 'Browser extension - real-time stack detection' },
   { name: 'Shodan',       url: 'https://shodan.io',             desc: 'Exposed services, ports, banners' },
   { name: 'Censys',       url: 'https://search.censys.io',      desc: 'Internet-wide scanning, TLS certs' },
-  { name: 'crt.sh',       url: 'https://crt.sh',                desc: 'Certificate transparency — reveals subdomains' },
+  { name: 'crt.sh',       url: 'https://crt.sh',                desc: 'Certificate transparency - reveals subdomains' },
   { name: 'SecurityTrails',url: 'https://securitytrails.com',   desc: 'DNS history, subdomain enumeration' },
 ]
 
@@ -15,14 +15,14 @@ const FIELDS = [
     label: 'Publicly Known Tech Stack',
     placeholder: 'e.g. React, Node.js, AWS, PostgreSQL',
     rows: 2,
-    hint: 'Use BuiltWith or the Wappalyzer extension on their website. Job postings on LinkedIn/Indeed are goldmines — search "[Company] engineer" to see required skills.',
+    hint: 'Use BuiltWith or the Wappalyzer extension on their website. Job postings on LinkedIn/Indeed are goldmines - search "[Company] engineer" to see required skills.',
   },
   {
     key: 'job_posting_tools',
     label: 'Tools Revealed in Job Postings',
     placeholder: 'e.g. Salesforce, Jira, Terraform, Kubernetes, Splunk',
     rows: 2,
-    hint: 'Go to LinkedIn Jobs, Indeed, or Glassdoor and search the company name. Read "Requirements" sections carefully — they often list internal platforms verbatim.',
+    hint: 'Go to LinkedIn Jobs, Indeed, or Glassdoor and search the company name. Read "Requirements" sections carefully - they often list internal platforms verbatim.',
   },
   {
     key: 'exposed_services',
@@ -43,7 +43,7 @@ const FIELDS = [
     label: 'Frameworks / Libraries Visible',
     placeholder: 'e.g. Next.js (via X-Powered-By header), jQuery 3.6 (HTML source), Nginx (Server header)…',
     rows: 2,
-    hint: 'Open browser DevTools → Network tab → inspect response headers. Check HTML source for script tags. Look at error pages — they often expose framework versions. robots.txt and sitemap.xml reveal CMS structure.',
+    hint: 'Open browser DevTools → Network tab → inspect response headers. Check HTML source for script tags. Look at error pages - they often expose framework versions. robots.txt and sitemap.xml reveal CMS structure.',
   },
 ]
 
@@ -64,19 +64,34 @@ export default function TechSection({ data, setData }) {
         <SectionProgress values={progressValues} />
       </div>
 
-      {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
-        <FieldGroup key={key}>
-          <label className="serai-label">{label}</label>
-          <textarea
-            className="serai-input resize-none"
-            rows={rows}
-            placeholder={placeholder}
-            value={data[key]}
-            onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
-          />
-          <FieldHint>{hint}</FieldHint>
-        </FieldGroup>
-      ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {FIELDS.slice(0, 4).map(({ key, label, placeholder, rows, hint }) => (
+          <FieldGroup key={key}>
+            <label className="serai-label">{label}</label>
+            <AutoTextarea
+              className="serai-input"
+              minRows={rows}
+              placeholder={placeholder}
+              value={data[key]}
+              onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
+            />
+            <FieldHint>{hint}</FieldHint>
+          </FieldGroup>
+        ))}
+        <div className="lg:col-span-2">
+          <FieldGroup>
+            <label className="serai-label">{FIELDS[4].label}</label>
+            <AutoTextarea
+              className="serai-input"
+              minRows={FIELDS[4].rows}
+              placeholder={FIELDS[4].placeholder}
+              value={data[FIELDS[4].key]}
+              onChange={e => setData(d => ({ ...d, [FIELDS[4].key]: e.target.value }))}
+            />
+            <FieldHint>{FIELDS[4].hint}</FieldHint>
+          </FieldGroup>
+        </div>
+      </div>
 
       <OsintResources tools={OSINT_TOOLS} />
     </div>

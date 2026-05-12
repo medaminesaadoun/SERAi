@@ -1,11 +1,11 @@
-import { FieldGroup, FieldHint, SectionProgress, OsintResources } from './FormHelpers'
+import { FieldGroup, FieldHint, SectionProgress, OsintResources, AutoTextarea } from './FormHelpers'
 
 const OSINT_TOOLS = [
-  { name: 'HaveIBeenPwned', url: 'https://haveibeenpwned.com',   desc: 'Domain breach check — leaked employee credentials' },
+  { name: 'HaveIBeenPwned', url: 'https://haveibeenpwned.com',   desc: 'Domain breach check - leaked employee credentials' },
   { name: 'Shodan',         url: 'https://shodan.io',            desc: 'Internet-facing assets, banners, open ports' },
   { name: 'WHOIS / DomainTools', url: 'https://whois.domaintools.com', desc: 'Registrant info, registration date, DNS history' },
   { name: 'Wayback Machine',url: 'https://web.archive.org',      desc: 'Archived versions of the website, old admin pages' },
-  { name: 'GitHub Search',  url: 'https://github.com/search',    desc: 'Search company name — find public repos & secrets' },
+  { name: 'GitHub Search',  url: 'https://github.com/search',    desc: 'Search company name - find public repos & secrets' },
   { name: 'IntelX',         url: 'https://intelx.io',            desc: 'Paste sites, breach data, dark web mentions' },
 ]
 
@@ -34,9 +34,9 @@ const FIELDS = [
   {
     key: 'github_repos',
     label: 'GitHub / Public Repositories',
-    placeholder: 'e.g. github.com/company — 12 public repos, .env committed in history 8 months ago, internal API base URL hardcoded in config.js…',
+    placeholder: 'e.g. github.com/company - 12 public repos, .env committed in history 8 months ago, internal API base URL hardcoded in config.js…',
     rows: 2,
-    hint: 'Search GitHub for the company name and domain. Use truffleHog or git-secrets concepts: look for .env files, API keys, and internal URLs in commit history. Check forks — contributors may have pushed sensitive data.',
+    hint: 'Search GitHub for the company name and domain. Use truffleHog or git-secrets concepts: look for .env files, API keys, and internal URLs in commit history. Check forks - contributors may have pushed sensitive data.',
   },
   {
     key: 'pastebin_leaks',
@@ -71,19 +71,21 @@ export default function DigitalFootprintSection({ data, setData }) {
         <SectionProgress values={progressValues} />
       </div>
 
-      {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
-        <FieldGroup key={key}>
-          <label className="serai-label">{label}</label>
-          <textarea
-            className="serai-input resize-none"
-            rows={rows}
-            placeholder={placeholder}
-            value={data[key]}
-            onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
-          />
-          <FieldHint>{hint}</FieldHint>
-        </FieldGroup>
-      ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
+          <FieldGroup key={key}>
+            <label className="serai-label">{label}</label>
+            <AutoTextarea
+              className="serai-input"
+              minRows={rows}
+              placeholder={placeholder}
+              value={data[key]}
+              onChange={e => setData(d => ({ ...d, [key]: e.target.value }))}
+            />
+            <FieldHint>{hint}</FieldHint>
+          </FieldGroup>
+        ))}
+      </div>
 
       <OsintResources tools={OSINT_TOOLS} />
     </div>

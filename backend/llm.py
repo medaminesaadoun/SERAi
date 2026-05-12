@@ -41,7 +41,7 @@ Cloud providers: {request.technology.cloud_providers or "Unknown"}
 Visible frameworks: {request.technology.frameworks_visible or "None"}
 
 == PROCESS EXPOSURE ==
-Ticketing system visible: {"YES — " + request.processes.ticketing_system_name if request.processes.ticketing_system_visible else "NO"}
+Ticketing system visible: {"YES - " + request.processes.ticketing_system_name if request.processes.ticketing_system_visible else "NO"}
 Public onboarding docs: {"YES" if request.processes.onboarding_docs_public else "NO"}
 Known vendor/partner relationships: {request.processes.vendor_relationships or "None identified"}
 Other internal process leaks: {request.processes.internal_process_leaks or "None"}
@@ -192,7 +192,7 @@ async def stream_analysis(request: AnalysisRequest):
                         full_content += content
                         yield ("token", content)
                     elif thinking:
-                        # Thinking phase — stream for display but exclude from JSON
+                        # Thinking phase - stream for display but exclude from JSON
                         yield ("thinking", thinking)
                     if chunk.get("done"):
                         print(f"[STREAM] done after {line_count} lines, content chars={len(full_content)}", flush=True)
