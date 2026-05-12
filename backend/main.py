@@ -6,8 +6,8 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pathlib import Path
 
 from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path, delete_analysis, save_profile, get_all_profiles, get_profile, update_profile, delete_profile, get_analyses_by_company
-from llm import run_analysis, check_ollama_health, stream_analysis, test_model_inference, generate_comparison_insight
-from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse, ComparisonInsight, ProfileSaveRequest, ProfileResponse
+from llm import run_analysis, check_ollama_health, stream_analysis, test_model_inference, generate_comparison_insight, stream_playbook
+from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse, ComparisonInsight, ProfileSaveRequest, ProfileResponse, PlaybookRequest
 from pdf_generator import generate_pdf, PDF_AVAILABLE
 
 
@@ -255,6 +255,28 @@ async def get_pdf(analysis_id: str):
         pdf_path,
         media_type="application/pdf",
         filename=f"SERAi-report-{data['company_name'].replace(' ', '_')}.pdf",
+    )
+
+
+# -- Playbook endpoint --------------------------------------------------------
+
+@app.post("/api/scenarios/playbook/stream")
+async def stream_scenario_playbook(request: PlaybookRequest):
+    async def event_generator():
+        try:
+            yield f"data: {json.dumps({'type': 'connected'})}\n\n"
+            async for event_type, data in stream_playbook(
+                request.scenario, request.company_name, request.mode, request.context
+            ):
+                yield f"data: {json.dumps({'type': event_type, 'content': data})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
 
 

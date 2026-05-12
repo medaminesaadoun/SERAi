@@ -354,6 +354,84 @@ Respond ONLY with valid JSON:
             }
 
 
+async def stream_playbook(scenario: dict, company_name: str, mode: str, context: dict):
+    """Async generator yielding ('token', str) for playbook streaming."""
+    is_atk = mode == 'attack'
+    role = "red team consultant and penetration tester" if is_atk else "blue team security analyst and incident responder"
+    framing = (
+        "Write from the attacker's perspective. Use active, tactical language: 'the attacker does X', 'craft a message that...', 'exploit the fact that...'. Be specific and actionable."
+        if is_atk else
+        "Write from the defender's perspective. Focus on detection, prevention, and response: 'monitor for X', 'implement Y control', 'respond by...'. Be specific and operational."
+    )
+
+    employees = context.get('employees', 'not specified')
+    tech_stack = context.get('tech_stack', 'not specified')
+    exposed_services = context.get('exposed_services', 'not specified')
+
+    prompt = f"""You are a {role} writing a detailed, company-specific attack playbook.
+
+COMPANY: {company_name}
+KNOWN INTEL:
+- Key personnel: {employees}
+- Tech stack: {tech_stack}
+- Exposed services: {exposed_services}
+
+SCENARIO: {scenario.get('title')} (type: {scenario.get('type')})
+MITRE TECHNIQUE: {scenario.get('mitre_technique')}
+DESCRIPTION: {scenario.get('description')}
+LIKELIHOOD: {scenario.get('likelihood')} | IMPACT: {scenario.get('impact')}
+
+Write a structured playbook with EXACTLY these 6 sections in order, each starting with "## " followed by the heading name:
+
+## Reconnaissance
+## Initial Contact
+## Execution
+## Impact
+## Detection Indicators
+## Mitigations
+
+Rules:
+- Be specific to this company's actual intel - reference real names, real technologies, real services
+- Each section should be 3-6 concrete, actionable bullet points or short paragraphs
+- For Initial Contact in ATK mode: include a realistic draft message/subject line/pretext script
+- {framing}
+
+/no_think"""
+
+    async with httpx.AsyncClient() as client:
+        model = await get_available_model(client)
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": f"You are a {role}. Write structured, specific playbooks using real intel provided. Always use exactly the 6 section headings specified."},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": True,
+            "think": False,
+            "options": {"temperature": 0.3, "num_predict": 2048},
+        }
+
+        async with client.stream(
+            "POST",
+            f"{OLLAMA_URL}/api/chat",
+            json=payload,
+            timeout=httpx.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0),
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.strip():
+                    continue
+                try:
+                    chunk = json.loads(line)
+                    content = chunk.get("message", {}).get("content", "")
+                    if content:
+                        yield ("token", content)
+                    if chunk.get("done"):
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+
 async def check_ollama_health() -> dict:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import RadarChart from './RadarChart'
 import { useToast } from '../context/ToastContext'
+import PlaybookDrawer from './PlaybookDrawer'
 
 const RISK_COLORS = {
   LOW:      { text: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30',  hex: '#22c55e' },
@@ -328,6 +329,7 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
   const { id, timestamp, company_name, result } = analysis
   const { toast } = useToast()
   const [mode, setMode] = useState('attack')
+  const [activePlaybook, setActivePlaybook] = useState(null)
   const [comparison, setComparison] = useState(null)
   const [comparisonLoading, setComparisonLoading] = useState(false)
   const [comparisonOpen, setComparisonOpen] = useState(true)
@@ -590,6 +592,16 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
                       <ThreatMatrix likelihood={s.likelihood} impact={s.impact} />
                     </div>
                     <p className="text-xs text-neutral-500 leading-relaxed mb-2.5">{s.description}</p>
+                        <button
+                          onClick={() => setActivePlaybook(s)}
+                          className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors shrink-0 mt-2"
+                          title="Generate attack playbook"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                          Playbook
+                        </button>
                     <div className="flex gap-3">
                       {[{ label: 'Likelihood', val: s.likelihood }, { label: 'Impact', val: s.impact }].map(({ label, val }) => {
                         const c = val === 'HIGH' ? '#ef4444' : val === 'MEDIUM' ? '#eab308' : '#22c55e'
@@ -690,6 +702,14 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
                         )
                       })}
                     </div>
+                    <button
+                      onClick={() => setActivePlaybook(s)}
+                      className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors mt-2"
+                      title="Generate attack playbook"
+                    >
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      Playbook
+                    </button>
                   </div>
                 ))}
               </div>
@@ -755,6 +775,21 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
       )}
 
       {/* ── Footer ── */}
+      
+      {activePlaybook && (
+        <PlaybookDrawer
+          scenario={activePlaybook}
+          companyName={company_name}
+          mode={mode}
+          context={{
+            employees: (result.priority_targets || []).slice(0, 3).map(t => t.name + ' (' + t.role + ')').join(', '),
+            executive_summary: result.executive_summary || '',
+            tech_stack: '',
+            exposed_services: '',
+          }}
+          onClose={() => setActivePlaybook(null)}
+        />
+      )}
       <div className="flex items-center justify-between font-mono text-xs text-neutral-700 py-4 mt-4 fade-in-up"
            style={{ animationDelay: '0.4s', borderTop: '1px solid rgb(var(--color-border) / 0.3)' }}>
         <span>Analysis ID: <span className="text-neutral-600">{id}</span></span>

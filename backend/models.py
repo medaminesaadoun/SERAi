@@ -127,6 +127,13 @@ class HealthResponse(BaseModel):
     message: str
 
 
+class PlaybookRequest(BaseModel):
+    scenario: dict
+    company_name: str
+    mode: str
+    context: dict
+
+
 class ProfileSaveRequest(BaseModel):
     name: str
     form_data: dict
