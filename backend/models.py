@@ -93,6 +93,15 @@ class AnalysisResult(BaseModel):
     executive_summary: str
 
 
+class ComparisonInsight(BaseModel):
+    score_delta: int
+    period: str
+    summary: str
+    top_improvements: list[str]
+    remaining_risks: list[str]
+    outlook: str
+
+
 # ── API response models ───────────────────────────────────────────────────────
 
 class AnalysisResponse(BaseModel):
@@ -108,6 +117,7 @@ class AnalysisSummary(BaseModel):
     company_name: str
     global_score: int | None
     risk_level: str | None
+    dimension_scores: dict | None
 
 
 class HealthResponse(BaseModel):
@@ -115,3 +125,14 @@ class HealthResponse(BaseModel):
     ollama_connected: bool
     model: str
     message: str
+
+
+class ProfileSaveRequest(BaseModel):
+    name: str
+    form_data: dict
+
+
+class ProfileResponse(BaseModel):
+    id: str
+    name: str
+    updated_at: str

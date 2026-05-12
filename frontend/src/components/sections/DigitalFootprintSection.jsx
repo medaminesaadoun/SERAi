@@ -54,8 +54,9 @@ const FIELDS = [
   },
 ]
 
-export default function DigitalFootprintSection({ data, setData }) {
+export default function DigitalFootprintSection({ data, setData, changedFields = new Set(), sectionKey = 'digital_footprint' }) {
   const progressValues = FIELDS.map(f => data[f.key])
+  const changed = (field) => changedFields.has(`${sectionKey}.${field}`)
 
   return (
     <div className="space-y-5">
@@ -74,9 +75,12 @@ export default function DigitalFootprintSection({ data, setData }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {FIELDS.map(({ key, label, placeholder, rows, hint }) => (
           <FieldGroup key={key}>
-            <label className="serai-label">{label}</label>
+            <label className="serai-label">
+              {label}
+              {changed(key) && <span className="ml-2 text-blue-400 text-xs font-mono">● updated</span>}
+            </label>
             <AutoTextarea
-              className="serai-input"
+              className={`serai-input${changed(key) ? ' ring-2 ring-blue-500/60' : ''}`}
               minRows={rows}
               placeholder={placeholder}
               value={data[key]}

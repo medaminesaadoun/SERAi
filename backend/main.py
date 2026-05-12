@@ -5,9 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pathlib import Path
 
-from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path, delete_analysis
-from llm import run_analysis, check_ollama_health, stream_analysis, test_model_inference
-from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse
+from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path, delete_analysis, save_profile, get_all_profiles, get_profile, update_profile, delete_profile, get_analyses_by_company
+from llm import run_analysis, check_ollama_health, stream_analysis, test_model_inference, generate_comparison_insight
+from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse, ComparisonInsight, ProfileSaveRequest, ProfileResponse
 from pdf_generator import generate_pdf, PDF_AVAILABLE
 
 
@@ -175,6 +175,18 @@ async def get_report_html(analysis_id: str):
         formatted_date = data["timestamp"]
 
     result = data["analysis_result"]
+
+    # Check for prior analysis for comparison insight
+    prior_analyses = await get_analyses_by_company(data["company_name"])
+    prior = next((a for a in reversed(prior_analyses) if a["id"] != analysis_id), None)
+    comparison = None
+    if prior:
+        try:
+            insight_data = await generate_comparison_insight(data, prior)
+            comparison = insight_data
+        except Exception:
+            comparison = None
+
     template = jinja_env.get_template("report.html")
     html = template.render(
         company_name=data["company_name"],
@@ -190,6 +202,7 @@ async def get_report_html(analysis_id: str):
         recommendations=result.get("recommendations", []),
         executive_summary=result.get("executive_summary", ""),
         risk_color_fn=risk_color,
+        comparison=comparison,
     )
     # Inject a print-on-load script and a floating print button
     inject = """
@@ -243,3 +256,53 @@ async def get_pdf(analysis_id: str):
         media_type="application/pdf",
         filename=f"SERAi-report-{data['company_name'].replace(' ', '_')}.pdf",
     )
+
+
+# -- Profile endpoints --------------------------------------------------------
+
+@app.get("/api/profiles", response_model=list[ProfileResponse])
+async def list_profiles():
+    rows = await get_all_profiles()
+    return [ProfileResponse(**r) for r in rows]
+
+
+@app.post("/api/profiles", response_model=ProfileResponse, status_code=201)
+async def create_profile(req: ProfileSaveRequest):
+    result = await save_profile(req.name, req.form_data)
+    return ProfileResponse(**result)
+
+
+@app.put("/api/profiles/{profile_id}", response_model=ProfileResponse)
+async def update_profile_route(profile_id: str, req: ProfileSaveRequest):
+    data = await get_profile(profile_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    result = await update_profile(profile_id, req.name, req.form_data)
+    return ProfileResponse(**result)
+
+
+@app.delete("/api/profiles/{profile_id}", status_code=204)
+async def delete_profile_route(profile_id: str):
+    data = await get_profile(profile_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    await delete_profile(profile_id)
+
+
+# -- Comparison endpoint -------------------------------------------------------
+
+@app.get("/api/analyses/{analysis_id}/comparison")
+async def get_comparison(analysis_id: str):
+    current = await get_analysis(analysis_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    prior_analyses = await get_analyses_by_company(current["company_name"])
+    prior = next((a for a in reversed(prior_analyses) if a["id"] != analysis_id), None)
+
+    if not prior:
+        from fastapi.responses import Response
+        return Response(status_code=204)
+
+    insight_data = await generate_comparison_insight(current, prior)
+    return ComparisonInsight(**insight_data)

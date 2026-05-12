@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import axios from 'axios'
 import AnalysisLoader from './AnalysisLoader'
 import { getRandomProfile } from '../data/sampleFills'
 import PeopleSection from './sections/PeopleSection'
@@ -8,6 +9,7 @@ import DigitalFootprintSection from './sections/DigitalFootprintSection'
 import { ConsentTooltip } from './OnboardingTooltip'
 import { useToast } from '../context/ToastContext'
 import AuthorizationModal from './AuthorizationModal'
+import { useProfileDiff } from '../hooks/useProfileDiff'
 
 const STEPS = [
   { id: 0, label: 'Personnes',          sublabel: 'People & org exposure'   },
@@ -35,10 +37,27 @@ export default function FormStepper({ onComplete }) {
   const [processes, setProcesses]       = useState(defaultProcesses)
   const [digitalFootprint, setDigital]  = useState(defaultDigitalFootprint)
 
-  const [loading, setLoading]           = useState(false)
-  const [streamEvent, setStreamEvent]   = useState(null)
+  const [loading, setLoading]             = useState(false)
+  const [streamEvent, setStreamEvent]     = useState(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const { toast } = useToast()
+
+  // Profile state
+  const [profiles, setProfiles]               = useState([])
+  const [activeProfileId, setActiveProfileId] = useState(null)
+  const [profileName, setProfileName]         = useState('')
+  const [profileBaseline, setProfileBaseline] = useState(null)
+  const [profilesOpen, setProfilesOpen]       = useState(false)
+
+  const currentFormState = { company_name: companyName, people, technology, processes, digital_footprint: digitalFootprint }
+  const { changedFields, changedBySection, totalChanges } = useProfileDiff(profileBaseline, currentFormState)
+
+  const SECTION_KEYS = ['people', 'technology', 'processes', 'digital_footprint']
+
+  useEffect(() => {
+    const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+    axios.get(`${base}/api/profiles`).then(r => setProfiles(r.data)).catch(() => {})
+  }, [])
 
   const sectionData = [
     { data: people,          setData: setPeople },
@@ -46,6 +65,47 @@ export default function FormStepper({ onComplete }) {
     { data: processes,       setData: setProcesses },
     { data: digitalFootprint,setData: setDigital },
   ]
+
+  function loadProfile(profile) {
+    const fd = profile.form_data
+    setCompanyName(fd.company_name || '')
+    setPeople(fd.people || defaultPeople)
+    setTechnology(fd.technology || defaultTech)
+    setProcesses(fd.processes || defaultProcesses)
+    setDigital(fd.digital_footprint || defaultDigitalFootprint)
+    setActiveProfileId(profile.id)
+    setProfileName(fd.company_name || profile.name)
+    setProfileBaseline({ ...fd })
+    setProfilesOpen(false)
+    setStep(0)
+    prevStep.current = 0
+    toast.success(`Profile loaded: ${profile.name}`)
+  }
+
+  async function saveProfile() {
+    if (!companyName.trim()) { toast.warning('Enter a company name before saving.'); return }
+    const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+    const fd = { company_name: companyName, people, technology, processes, digital_footprint: digitalFootprint }
+    try {
+      let res
+      if (activeProfileId) {
+        res = await axios.put(`${base}/api/profiles/${activeProfileId}`, { name: companyName, form_data: fd })
+      } else {
+        res = await axios.post(`${base}/api/profiles`, { name: companyName, form_data: fd })
+        setActiveProfileId(res.data.id)
+      }
+      setProfileName(companyName)
+      setProfileBaseline({ ...fd })
+      setProfiles(prev => {
+        const exists = prev.find(p => p.id === res.data.id)
+        if (exists) return prev.map(p => p.id === res.data.id ? res.data : p)
+        return [res.data, ...prev]
+      })
+      toast.success('Profile saved.')
+    } catch {
+      toast.error('Failed to save profile.')
+    }
+  }
 
   function quickFill() {
     const p = getRandomProfile()
@@ -183,6 +243,9 @@ export default function FormStepper({ onComplete }) {
                     <div className={`text-sm font-medium leading-tight transition-colors duration-300
                       ${active ? 'text-accent' : done ? 'text-neutral-300' : 'text-neutral-600'}`}>
                       {s.label}
+                      {profileBaseline && changedBySection[SECTION_KEYS[i]] > 0 && (
+                        <span className="ml-1.5 font-mono text-xs text-blue-400">● {changedBySection[SECTION_KEYS[i]]}</span>
+                      )}
                     </div>
                     <div className="text-xs text-neutral-600 font-mono mt-0.5">{s.sublabel}</div>
                   </div>
@@ -238,24 +301,74 @@ export default function FormStepper({ onComplete }) {
             </div>
           </div>
 
+          {/* Profile picker */}
+          {profiles.length > 0 && (
+            <div className="mb-4 fade-in-up relative">
+              <button
+                type="button"
+                onClick={() => setProfilesOpen(o => !o)}
+                className="w-full serai-input text-left flex items-center justify-between text-neutral-400 hover:text-neutral-200 transition-colors"
+              >
+                <span className="font-mono text-xs">
+                  {profileName ? `Profile: ${profileName}` : 'Load existing company...'}
+                </span>
+                <svg className={`w-4 h-4 transition-transform ${profilesOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {profilesOpen && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+                  {profiles.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+                        axios.get(`${base}/api/profiles/${p.id}`)
+                          .then(r => loadProfile(r.data))
+                          .catch(() => toast.error('Failed to load profile.'))
+                      }}
+                      className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors flex items-center justify-between group"
+                    >
+                      <span className="font-medium text-sm text-neutral-300 group-hover:text-accent">{p.name}</span>
+                      <span className="font-mono text-xs text-neutral-600">{new Date(p.updated_at).toLocaleDateString()}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Company name */}
           <div className="mb-8 fade-in-up">
             <div className="flex items-center justify-between mb-1">
               <label className="serai-label !mb-0">Target Organization</label>
-              <button
-                type="button"
-                onClick={quickFill}
-                className="flex items-center gap-1.5 font-mono text-xs text-neutral-500
-                           hover:text-accent transition-colors duration-200 group"
-                title="Fill with a randomized example organization"
-              >
-                <svg className="w-3 h-3 transition-transform duration-300 group-hover:rotate-180"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Quick fill
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={saveProfile}
+                  className="flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-accent transition-colors duration-200"
+                  title="Save current form as a company profile"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  Save profile
+                </button>
+                <button
+                  type="button"
+                  onClick={quickFill}
+                  className="flex items-center gap-1.5 font-mono text-xs text-neutral-500
+                             hover:text-accent transition-colors duration-200 group"
+                  title="Fill with a randomized example organization"
+                >
+                  <svg className="w-3 h-3 transition-transform duration-300 group-hover:rotate-180"
+                       fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Quick fill
+                </button>
+              </div>
             </div>
             <input
               className="serai-input text-base font-semibold"
@@ -272,7 +385,7 @@ export default function FormStepper({ onComplete }) {
                 {(() => {
                   const Comp = SectionComponents[step]
                   const { data, setData } = sectionData[step]
-                  return <Comp data={data} setData={setData} />
+                  return <Comp data={data} setData={setData} changedFields={changedFields} sectionKey={SECTION_KEYS[step]} />
                 })()}
               </div>
             ) : (
@@ -348,6 +461,9 @@ export default function FormStepper({ onComplete }) {
                 onClick={() => {
                   if (!companyName.trim()) { toast.warning('Company name is required.'); return }
                   if (!authorized) { toast.warning('You must confirm authorization before submitting.'); return }
+                  if (profileBaseline && totalChanges > 0) {
+                    toast.info(`${totalChanges} field${totalChanges === 1 ? '' : 's'} updated since last profile save.`, 3000)
+                  }
                   setShowAuthModal(true)
                 }}
                 disabled={loading}

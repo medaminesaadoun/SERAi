@@ -1,444 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;700;900&display=swap');
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SerAI Report - {{ company_name }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --accent: #a3e635;
+      --bg: #0a0a0a;
+      --card: #111;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+    .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
 
-  :root {
-    --bg: #0a0a0a;
-    --card: #1a1a1a;
-    --border: #2a2a2a;
-    --accent: #a3e635;
-    --accent2: #84cc16;
-    --text: #e5e5e5;
-    --muted: #737373;
-    --red: #ef4444;
-    --orange: #f97316;
-    --yellow: #eab308;
-    --green: #22c55e;
-  }
+    /* Cover */
+    .cover { border-bottom: 1px solid var(--border); padding-bottom: 32px; margin-bottom: 40px; }
+    .cover-badge { display: inline-block; font-family: monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 4px; margin-bottom: 16px; }
+    .cover-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .cover-sub { color: var(--muted); font-family: monospace; font-size: 12px; }
+    .cover-watermark { font-family: monospace; font-size: 10px; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; margin-top: 12px; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Score gauge */
+    .score-section { display: flex; align-items: center; gap: 48px; margin-bottom: 40px; flex-wrap: wrap; }
+    .gauge-wrap { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+    .gauge-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .gauge-score { font-size: 36px; font-weight: 700; font-family: monospace; line-height: 1; }
+    .gauge-max { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .gauge-risk { font-size: 11px; font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; font-weight: 700; }
+    .score-dims { flex: 1; min-width: 200px; }
+    .dim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .dim-label { font-family: monospace; font-size: 11px; color: var(--muted); width: 120px; flex-shrink: 0; }
+    .dim-bar-wrap { flex: 1; background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+    .dim-bar { height: 100%; border-radius: 4px; transition: width 1.2s ease; }
+    .dim-val { font-family: monospace; font-size: 11px; color: var(--muted); width: 32px; text-align: right; flex-shrink: 0; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    font-size: 11pt;
-    line-height: 1.5;
-  }
+    /* Radar */
+    .radar-wrap { max-width: 340px; margin: 0 auto 40px; }
 
-  /* ── PAGE BREAKS ── */
-  .page { page-break-after: always; padding: 48px 56px; min-height: 100vh; }
-  .page:last-child { page-break-after: avoid; }
+    /* Section headings */
+    .section { margin-bottom: 36px; }
+    .section-head { font-family: monospace; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
 
-  /* ── COVER PAGE ── */
-  .cover {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    background: var(--bg);
-    position: relative;
-    overflow: hidden;
-  }
+    /* Executive brief */
+    .exec-text { font-size: 15px; line-height: 1.8; color: #d1d5db; padding: 20px; background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; }
 
-  .cover::before {
-    content: 'CONFIDENTIEL';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-35deg);
-    font-size: 96pt;
-    font-weight: 900;
-    color: rgba(163,230,53,0.04);
-    white-space: nowrap;
-    pointer-events: none;
-    letter-spacing: 8px;
-  }
+    /* Comparison */
+    .comparison-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 36px; }
+    .comparison-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .delta-badge { font-family: monospace; font-weight: 700; font-size: 13px; padding: 3px 10px; border-radius: 4px; }
+    .delta-good { color: #4ade80; background: rgba(74,222,128,0.1); }
+    .delta-bad { color: #f87171; background: rgba(248,113,113,0.1); }
+    .comparison-summary { color: #9ca3af; font-size: 13px; line-height: 1.7; margin-bottom: 14px; }
+    .comparison-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+    .comp-col-head { font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .comp-item { font-size: 12px; color: #9ca3af; margin-bottom: 4px; padding-left: 14px; position: relative; }
+    .comp-item::before { content: attr(data-bullet); position: absolute; left: 0; }
+    .outlook-box { background: rgba(163,230,53,0.05); border: 1px solid rgba(163,230,53,0.15); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #9ca3af; }
+    .outlook-label { font-family: monospace; font-size: 10px; color: var(--accent); text-transform: uppercase; margin-right: 6px; }
 
-  .cover-logo {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 52pt;
-    font-weight: 700;
-    letter-spacing: -2px;
-    color: var(--accent);
-  }
-  .cover-logo span { color: var(--text); }
-  .cover-logo .dot {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 3px solid var(--bg);
-    box-shadow: 0 0 0 2px var(--accent);
-    vertical-align: super;
-    margin-left: 2px;
-  }
+    /* Target cards */
+    .targets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .target-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .target-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .target-role { font-family: monospace; font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+    .target-risk { display: inline-block; font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 3px; margin-bottom: 8px; }
+    .attack-tag { display: inline-block; font-size: 11px; background: #1f2937; color: #9ca3af; padding: 2px 7px; border-radius: 3px; margin: 2px; }
+    .target-protection { font-size: 11px; color: var(--muted); margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
 
-  .cover-tagline {
-    font-size: 11pt;
-    color: var(--muted);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-top: 8px;
-  }
+    /* Scenarios - collapsible via details/summary */
+    .scenario { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .scenario summary { padding: 12px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; list-style: none; user-select: none; gap: 12px; }
+    .scenario summary::-webkit-details-marker { display: none; }
+    .scenario-title { font-weight: 600; font-size: 13px; flex: 1; }
+    .scenario-badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+    .badge-mitre { font-family: monospace; font-size: 10px; background: rgba(163,230,53,0.1); color: var(--accent); padding: 2px 7px; border-radius: 3px; }
+    .badge-pill { font-family: monospace; font-size: 10px; padding: 2px 7px; border-radius: 3px; }
+    .badge-high { background: rgba(239,68,68,0.1); color: #f87171; }
+    .badge-medium { background: rgba(251,191,36,0.1); color: #fbbf24; }
+    .badge-low { background: rgba(74,222,128,0.1); color: #4ade80; }
+    .scenario-body { padding: 0 16px 14px; border-top: 1px solid var(--border); }
+    .scenario-body p { color: #9ca3af; font-size: 13px; margin-top: 10px; line-height: 1.6; }
+    .scenario-meta { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+    .meta-label { font-family: monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; }
 
-  .cover-company {
-    font-size: 28pt;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
+    /* Recommendations */
+    .rec { display: flex; gap: 14px; padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+    .rec-priority { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .rec-content { flex: 1; }
+    .rec-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .rec-desc { font-size: 12px; color: #9ca3af; line-height: 1.5; }
+    .rec-mit { font-family: monospace; font-size: 10px; color: var(--muted); margin-top: 6px; }
 
-  .cover-meta {
-    color: var(--muted);
-    font-size: 10pt;
-    letter-spacing: 1px;
-  }
+    /* Risk color helpers */
+    .risk-critical { color: #ef4444; }
+    .risk-high { color: #f97316; }
+    .risk-medium { color: #eab308; }
+    .risk-low { color: #22c55e; }
+    .bg-risk-critical { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); }
+    .bg-risk-high { background: rgba(249,115,22,0.1); border-color: rgba(249,115,22,0.3); }
+    .bg-risk-medium { background: rgba(234,179,8,0.1); border-color: rgba(234,179,8,0.3); }
+    .bg-risk-low { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); }
 
-  .cover-score-block {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 32px;
-    border: 1px solid var(--border);
-    border-left: 4px solid {{ risk_color }};
-    background: var(--card);
-    margin: 40px 0;
-  }
+    /* Print styles */
+    @media print {
+      body { background: #fff; color: #111; }
+      :root { --bg: #fff; --card: #f9fafb; --border: #e5e7eb; --text: #111; --muted: #6b7280; --accent: #65a30d; }
+      .no-print { display: none !important; }
+      .page { padding: 20px; }
+      details[open] > .scenario-body { display: block; }
+    }
 
-  .cover-score-number {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 80pt;
-    font-weight: 700;
-    color: {{ risk_color }};
-    line-height: 1;
-  }
-
-  .cover-score-label { font-size: 9pt; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
-  .cover-risk-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 20pt;
-    font-weight: 700;
-    color: {{ risk_color }};
-    border: 2px solid {{ risk_color }};
-    padding: 8px 24px;
-    letter-spacing: 4px;
-  }
-
-  /* ── SECTION HEADERS ── */
-  .section-header {
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 12px;
-    margin-bottom: 28px;
-  }
-  .section-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9pt;
-    color: var(--accent);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  .section-heading {
-    font-size: 18pt;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  /* ── CARDS ── */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    padding: 20px 24px;
-    margin-bottom: 16px;
-  }
-
-  /* ── BADGES ── */
-  .badge {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8pt;
-    font-weight: 700;
-    letter-spacing: 2px;
-    padding: 3px 10px;
-    border-radius: 2px;
-  }
-  .badge-critical { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-  .badge-high, .badge-max { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
-  .badge-medium { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
-  .badge-low { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
-
-  /* ── SCORE BARS ── */
-  .score-row { margin-bottom: 14px; }
-  .score-label-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-size: 10pt;
-  }
-  .score-bar-bg {
-    background: var(--border);
-    height: 8px;
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .score-bar-fill {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-  }
-
-  /* ── TARGETS ── */
-  .target-card {
-    border-left: 3px solid var(--border);
-    padding-left: 20px;
-    margin-bottom: 20px;
-  }
-  .target-name { font-size: 13pt; font-weight: 700; margin-bottom: 2px; }
-  .target-role { color: var(--muted); font-size: 10pt; margin-bottom: 10px; }
-  .vector-tag {
-    display: inline-block;
-    font-size: 8pt;
-    background: rgba(163,230,53,0.08);
-    border: 1px solid rgba(163,230,53,0.2);
-    color: var(--accent);
-    padding: 2px 8px;
-    margin: 2px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  /* ── SCENARIOS ── */
-  .scenario-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-  }
-  .scenario-title { font-size: 12pt; font-weight: 700; margin-bottom: 4px; }
-  .mitre-tag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9pt;
-    color: var(--accent);
-    background: rgba(163,230,53,0.08);
-    border: 1px solid rgba(163,230,53,0.2);
-    padding: 3px 10px;
-  }
-  .scenario-meta { display: flex; gap: 12px; margin-top: 10px; font-size: 9pt; color: var(--muted); }
-
-  /* ── RECOMMENDATIONS ── */
-  .rec-card {
-    display: flex;
-    gap: 20px;
-    padding: 18px 20px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    margin-bottom: 12px;
-  }
-  .rec-number {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 20pt;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1;
-    min-width: 36px;
-  }
-  .rec-title { font-size: 11pt; font-weight: 700; margin-bottom: 6px; }
-  .rec-desc { font-size: 10pt; color: var(--muted); margin-bottom: 8px; }
-  .rec-mitre {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8pt;
-    color: var(--accent2);
-  }
-
-  /* ── FOOTER ── */
-  .footer {
-    position: fixed;
-    bottom: 24px;
-    left: 56px;
-    right: 56px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 8pt;
-    color: var(--muted);
-    border-top: 1px solid var(--border);
-    padding-top: 8px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  table { width: 100%; border-collapse: collapse; }
-  td, th { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; font-size: 10pt; }
-  th { color: var(--muted); font-weight: 600; font-size: 9pt; text-transform: uppercase; letter-spacing: 1px; }
-</style>
+    /* Floating save button */
+    .save-btn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      background: var(--accent); color: #000; border: none; border-radius: 8px;
+      padding: 10px 22px; font-weight: 700; font-size: 13px; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(163,230,53,0.3); transition: opacity 0.2s;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    .save-btn:hover { opacity: 0.88; }
+  </style>
 </head>
 <body>
+<div class="page">
 
-<!-- ══ COVER PAGE ══ -->
-<div class="page cover">
-  <div>
-    <div class="cover-logo">SER<span>A</span><span class="dot"></span></div>
-    <div class="cover-tagline">Social Engineering Risk Analyzer - AI-Powered</div>
-  </div>
-
-  <div>
-    <div class="cover-company">{{ company_name }}</div>
-    <div class="cover-meta">SECURITY ASSESSMENT REPORT &nbsp;·&nbsp; {{ formatted_date }}</div>
-    <div class="cover-meta">Report ID: {{ analysis_id }}</div>
-
-    <div class="cover-score-block">
+  <!-- Cover -->
+  <div class="cover">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div>
-        <div class="cover-score-label">Global Risk Score</div>
-        <div class="cover-score-number">{{ global_score }}</div>
-        <div class="cover-score-label">/ 100</div>
+        <div class="cover-watermark">CONFIDENTIEL - Authorized Use Only</div>
+        <div class="cover-badge bg-risk-{{ risk_level | lower }}" style="margin-top:12px;">
+          SerAI Social Engineering Risk Report
+        </div>
+        <div class="cover-title">{{ company_name }}</div>
+        <div class="cover-sub">{{ formatted_date }} &nbsp;|&nbsp; ID: {{ analysis_id[:8] }}</div>
       </div>
-      <div>
-        <div class="cover-score-label" style="margin-bottom:8px;">Risk Level</div>
-        <div class="cover-risk-badge">{{ risk_level }}</div>
+      <div style="text-align:right;">
+        <div style="font-family:monospace;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em;">Risk Level</div>
+        <div style="font-size:24px;font-weight:700;" class="risk-{{ risk_level | lower }}">{{ risk_level }}</div>
       </div>
     </div>
   </div>
 
-  <div style="color: var(--muted); font-size: 9pt; border-top: 1px solid var(--border); padding-top: 16px;">
-    This document is <strong style="color:var(--accent)">CONFIDENTIAL</strong> and intended solely for authorized personnel of {{ company_name }}. Distribution without explicit written authorization is prohibited. Generated by SERAi - local analysis only, no data transmitted externally.
-  </div>
-</div>
-
-
-<!-- ══ EXECUTIVE SUMMARY ══ -->
-<div class="page">
-  <div class="section-header">
-    <div class="section-title">// 01</div>
-    <div class="section-heading">Executive Summary</div>
-  </div>
-
-  <div class="card" style="border-left: 4px solid {{ risk_color }}; font-size: 12pt; line-height: 1.8;">
-    {{ executive_summary }}
-  </div>
-
-  <br/>
-  <div class="section-header">
-    <div class="section-title">// Risk Dimensions</div>
-    <div class="section-heading">Dimension Score Breakdown</div>
-  </div>
-
-  {% set dims = [
-    ('People', dimension_scores.people),
-    ('Technology', dimension_scores.technology),
-    ('Processes', dimension_scores.processes),
-    ('Digital Footprint', dimension_scores.digital_footprint),
-  ] %}
-  {% for label, score in dims %}
-  <div class="score-row">
-    <div class="score-label-row">
-      <span>{{ label }}</span>
-      <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:
-        {% if score >= 75 %}#ef4444{% elif score >= 50 %}#f97316{% elif score >= 25 %}#eab308{% else %}#22c55e{% endif %}
-      ">{{ score }}/100</span>
+  <!-- Score gauge + dimension bars -->
+  <div class="score-section">
+    <div class="gauge-wrap">
+      <canvas id="gaugeChart" width="160" height="160"></canvas>
+      <div class="gauge-label">
+        <div class="gauge-score" id="gaugeNum">0</div>
+        <div class="gauge-max">/100</div>
+        <div class="gauge-risk risk-{{ risk_level | lower }}">{{ risk_level }}</div>
+      </div>
     </div>
-    <div class="score-bar-bg">
-      <div class="score-bar-fill" style="width: {{ score }}%; background:
-        {% if score >= 75 %}#ef4444{% elif score >= 50 %}#f97316{% elif score >= 25 %}#eab308{% else %}#22c55e{% endif %}
-      "></div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-
-<!-- ══ PRIORITY TARGETS ══ -->
-<div class="page">
-  <div class="section-header">
-    <div class="section-title">// 02</div>
-    <div class="section-heading">Priority Targets</div>
-  </div>
-
-  {% for target in priority_targets %}
-  <div class="target-card" style="border-left-color:
-    {% if target.risk_level in ['MAX','CRITICAL'] %}#ef4444
-    {% elif target.risk_level == 'HIGH' %}#f97316
-    {% elif target.risk_level == 'MEDIUM' %}#eab308
-    {% else %}#22c55e{% endif %}
-  ">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-      <div class="target-name">{{ target.name }}</div>
-      <span class="badge badge-{{ target.risk_level | lower }}">{{ target.risk_level }}</span>
-    </div>
-    <div class="target-role">{{ target.role }}</div>
-    <div style="margin-bottom:8px;">
-      {% for vec in target.attack_vectors %}
-      <span class="vector-tag">{{ vec }}</span>
+    <div class="score-dims">
+      {% set dims = [
+        ('People',           dimension_scores.people,           '#f87171'),
+        ('Technology',       dimension_scores.technology,       '#60a5fa'),
+        ('Processes',        dimension_scores.processes,        '#fbbf24'),
+        ('Digital Footprint',dimension_scores.digital_footprint,'#c084fc'),
+      ] %}
+      {% for label, score, color in dims %}
+      <div class="dim-row">
+        <div class="dim-label">{{ label }}</div>
+        <div class="dim-bar-wrap">
+          <div class="dim-bar" id="bar-{{ loop.index }}" style="width:0%;background:{{ color }};"></div>
+        </div>
+        <div class="dim-val">{{ score }}</div>
+      </div>
       {% endfor %}
     </div>
-    <div style="font-size:10pt; color:var(--muted);">
-      <strong style="color:var(--text);">Protection:</strong> {{ target.protection }}
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-
-<!-- ══ ATTACK SCENARIOS ══ -->
-<div class="page">
-  <div class="section-header">
-    <div class="section-title">// 03</div>
-    <div class="section-heading">Attack Scenarios</div>
   </div>
 
-  {% for scenario in attack_scenarios %}
-  <div class="card" style="margin-bottom:20px;">
-    <div class="scenario-header">
-      <div>
-        <div class="scenario-title">{{ scenario.title }}</div>
-        <span class="badge badge-{{ scenario.type }}">{{ scenario.type | upper }}</span>
+  <!-- Radar chart -->
+  <div class="radar-wrap">
+    <canvas id="radarChart"></canvas>
+  </div>
+
+  <!-- Executive brief -->
+  <div class="section">
+    <div class="section-head">// Executive Summary</div>
+    <div class="exec-text">{{ executive_summary }}</div>
+  </div>
+
+  <!-- AI Comparison (conditional) -->
+  {% if comparison %}
+  <div class="section">
+    <div class="section-head">// Changes Since Last Assessment</div>
+    <div class="comparison-card">
+      <div class="comparison-header">
+        <span style="font-family:monospace;font-size:12px;color:var(--muted);">{{ comparison.period }}</span>
+        <span class="delta-badge {{ 'delta-good' if comparison.score_delta <= 0 else 'delta-bad' }}">
+          {% if comparison.score_delta <= 0 %}{{ comparison.score_delta }} pts{% else %}+{{ comparison.score_delta }} pts{% endif %}
+        </span>
       </div>
-      <span class="mitre-tag">{{ scenario.mitre_technique }}</span>
-    </div>
-    <div style="font-size:10.5pt; color: #d4d4d4; line-height:1.6;">{{ scenario.description }}</div>
-    <div class="scenario-meta">
-      <span>Likelihood: <strong style="color:
-        {% if scenario.likelihood == 'HIGH' %}#ef4444{% elif scenario.likelihood == 'MEDIUM' %}#eab308{% else %}#22c55e{% endif %}
-      ">{{ scenario.likelihood }}</strong></span>
-      <span>Impact: <strong style="color:
-        {% if scenario.impact == 'HIGH' %}#ef4444{% elif scenario.impact == 'MEDIUM' %}#eab308{% else %}#22c55e{% endif %}
-      ">{{ scenario.impact }}</strong></span>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-
-<!-- ══ RECOMMENDATIONS ══ -->
-<div class="page">
-  <div class="section-header">
-    <div class="section-title">// 04</div>
-    <div class="section-heading">Prioritized Recommendations</div>
-  </div>
-
-  {% for rec in recommendations %}
-  <div class="rec-card">
-    <div class="rec-number">{{ '%02d' % rec.priority }}</div>
-    <div style="flex:1;">
-      <div class="rec-title">{{ rec.title }}</div>
-      <div class="rec-desc">{{ rec.description }}</div>
-      <div class="rec-mitre">MITRE: {{ rec.mitre_mitigation }}</div>
+      <p class="comparison-summary">{{ comparison.summary }}</p>
+      <div class="comparison-cols">
+        {% if comparison.top_improvements %}
+        <div>
+          <div class="comp-col-head" style="color:#4ade80;">What Improved</div>
+          {% for item in comparison.top_improvements %}
+          <div class="comp-item" data-bullet="+">{{ item }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if comparison.remaining_risks %}
+        <div>
+          <div class="comp-col-head" style="color:#fbbf24;">Still At Risk</div>
+          {% for item in comparison.remaining_risks %}
+          <div class="comp-item" data-bullet="!">{{ item }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% if comparison.outlook %}
+      <div class="outlook-box">
+        <span class="outlook-label">Outlook:</span>{{ comparison.outlook }}
+      </div>
+      {% endif %}
     </div>
   </div>
-  {% endfor %}
+  {% endif %}
 
-  <div style="margin-top: 40px; padding: 24px; border: 1px solid var(--border); background: var(--card); font-size: 9pt; color: var(--muted);">
-    <strong style="color: var(--accent);">DISCLAIMER</strong><br/>
-    This report was generated by SERAi using publicly available OSINT data and local AI analysis. All findings are based on information provided by the analyst. This tool is intended for authorized security assessments only. The organization conducting this assessment is solely responsible for obtaining proper authorization before any security testing activities.
+  <!-- Priority targets -->
+  <div class="section">
+    <div class="section-head">// Priority Targets</div>
+    <div class="targets-grid">
+      {% for t in priority_targets %}
+      <div class="target-card">
+        <div class="target-name">{{ t.name }}</div>
+        <div class="target-role">{{ t.role }}</div>
+        <span class="target-risk bg-risk-{{ t.risk_level | lower }} risk-{{ t.risk_level | lower }}">{{ t.risk_level }}</span>
+        <div style="margin-top:6px;">
+          {% for v in t.attack_vectors %}
+          <span class="attack-tag">{{ v }}</span>
+          {% endfor %}
+        </div>
+        <div class="target-protection">{{ t.protection }}</div>
+      </div>
+      {% endfor %}
+    </div>
   </div>
+
+  <!-- Attack scenarios (collapsible) -->
+  <div class="section">
+    <div class="section-head">// Attack Scenarios</div>
+    {% for s in attack_scenarios %}
+    <details class="scenario">
+      <summary>
+        <div class="scenario-title">{{ s.title }}</div>
+        <div class="scenario-badges">
+          <span class="badge-mitre">{{ s.mitre_technique }}</span>
+          <span class="badge-pill {% if s.likelihood == 'HIGH' %}badge-high{% elif s.likelihood == 'MEDIUM' %}badge-medium{% else %}badge-low{% endif %}">L:{{ s.likelihood }}</span>
+          <span class="badge-pill {% if s.impact == 'HIGH' %}badge-high{% elif s.impact == 'MEDIUM' %}badge-medium{% else %}badge-low{% endif %}">I:{{ s.impact }}</span>
+        </div>
+      </summary>
+      <div class="scenario-body">
+        <p>{{ s.description }}</p>
+        <div class="scenario-meta">
+          <div><span class="meta-label">Type: </span><span style="font-size:12px;color:#9ca3af;">{{ s.type }}</span></div>
+          <div><span class="meta-label">MITRE: </span><span style="font-family:monospace;font-size:11px;color:var(--accent);">{{ s.mitre_technique }}</span></div>
+        </div>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+
+  <!-- Recommendations -->
+  <div class="section">
+    <div class="section-head">// Recommendations</div>
+    {% for r in recommendations %}
+    {% set p = r.priority %}
+    {% if p == 1 %}{% set pcolor = '#ef4444' %}
+    {% elif p == 2 %}{% set pcolor = '#f97316' %}
+    {% elif p == 3 %}{% set pcolor = '#eab308' %}
+    {% else %}{% set pcolor = '#22c55e' %}{% endif %}
+    <div class="rec">
+      <div class="rec-priority" style="background:{{ pcolor }}20;color:{{ pcolor }};">{{ p }}</div>
+      <div class="rec-content">
+        <div class="rec-title">{{ r.title }}</div>
+        <div class="rec-desc">{{ r.description }}</div>
+        <div class="rec-mit">MITRE {{ r.mitre_mitigation }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
 </div>
 
-<div class="footer">
-  <span>SERAi - Social Engineering Risk Analyzer</span>
-  <span>CONFIDENTIEL - {{ company_name }}</span>
-  <span>{{ formatted_date }}</span>
-</div>
+<!-- Floating save button -->
+<button class="save-btn no-print" onclick="window.print()">Save as PDF</button>
 
+<script>
+const GLOBAL_SCORE = {{ global_score }};
+const DIM_SCORES = [
+  {{ dimension_scores.people }},
+  {{ dimension_scores.technology }},
+  {{ dimension_scores.processes }},
+  {{ dimension_scores.digital_footprint }}
+];
+const DIM_COLORS = ['#f87171', '#60a5fa', '#fbbf24', '#c084fc'];
+const RISK_COLOR = '{{ risk_color }}';
+
+// Gauge (doughnut)
+const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+new Chart(gaugeCtx, {
+  type: 'doughnut',
+  data: {
+    datasets: [{
+      data: [GLOBAL_SCORE, 100 - GLOBAL_SCORE],
+      backgroundColor: [RISK_COLOR, '#1f2937'],
+      borderWidth: 0,
+      circumference: 270,
+      rotation: -135,
+    }]
+  },
+  options: {
+    cutout: '78%',
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    animation: { duration: 0 }
+  }
+});
+
+// Animate score counter
+let current = 0;
+const target = GLOBAL_SCORE;
+const step = Math.max(1, Math.ceil(target / 40));
+const el = document.getElementById('gaugeNum');
+const timer = setInterval(() => {
+  current = Math.min(current + step, target);
+  el.textContent = current;
+  if (current >= target) clearInterval(timer);
+}, 30);
+
+// Animate dimension bars
+DIM_SCORES.forEach((score, i) => {
+  setTimeout(() => {
+    const bar = document.getElementById('bar-' + (i + 1));
+    if (bar) bar.style.width = score + '%';
+  }, 200 + i * 120);
+});
+
+// Radar chart
+const radarCtx = document.getElementById('radarChart').getContext('2d');
+new Chart(radarCtx, {
+  type: 'radar',
+  data: {
+    labels: ['People', 'Technology', 'Processes', 'Digital Footprint'],
+    datasets: [{
+      label: '{{ company_name | replace("'", "\\'") }}',
+      data: DIM_SCORES,
+      borderColor: RISK_COLOR,
+      backgroundColor: RISK_COLOR + '22',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointBackgroundColor: RISK_COLOR,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: '#9ca3af', font: { family: 'monospace', size: 11 } } }
+    },
+    scales: {
+      r: {
+        min: 0, max: 100,
+        ticks: { stepSize: 25, color: '#6b7280', backdropColor: 'transparent', font: { size: 10 } },
+        grid: { color: '#1f2937' },
+        pointLabels: { color: '#9ca3af', font: { family: 'monospace', size: 11 } },
+        angleLines: { color: '#1f2937' }
+      }
+    }
+  }
+});
+</script>
 </body>
 </html>

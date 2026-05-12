@@ -246,10 +246,104 @@ function RecSwimlane({ recommendations }) {
 }
 
 /* ── Main dashboard ────────────────────────────────────────── */
+/* -- Comparison insight tile -------------------------------------------- */
+function ComparisonTile({ comparison, isOpen, onToggle, mode }) {
+  const delta = comparison.score_delta
+  const improved = delta <= 0
+  const accentColor = mode === 'attack' ? 'text-red-400' : 'text-blue-400'
+  const accentBorder = mode === 'attack' ? 'border-red-500/20' : 'border-blue-500/20'
+  const accentBg = mode === 'attack' ? 'bg-red-500/5' : 'bg-blue-500/5'
+
+  return (
+    <div className={`md:col-span-12 serai-card border ${accentBorder} ${accentBg} overflow-hidden fade-in-up`}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`font-mono text-xs uppercase tracking-widest ${accentColor}`}>
+            Changes Since Last Assessment
+          </div>
+          <span className={`font-mono text-sm font-bold px-2 py-0.5 rounded ${improved ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'}`}>
+            {improved ? '' : '+'}{delta} pts
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-neutral-600">{comparison.period}</span>
+          <svg
+            className={`w-4 h-4 text-neutral-600 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="px-4 pb-4 space-y-4 border-t border-border/30 pt-4">
+          <p className="text-sm text-neutral-400 leading-relaxed">{comparison.summary}</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            {comparison.top_improvements.length > 0 && (
+              <div>
+                <div className="font-mono text-xs text-green-400 uppercase tracking-wider mb-2">What Improved</div>
+                <ul className="space-y-1.5">
+                  {comparison.top_improvements.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-neutral-400">
+                      <span className="text-green-400 mt-0.5 shrink-0">+</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {comparison.remaining_risks.length > 0 && (
+              <div>
+                <div className="font-mono text-xs text-amber-400 uppercase tracking-wider mb-2">Still At Risk</div>
+                <ul className="space-y-1.5">
+                  {comparison.remaining_risks.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-neutral-400">
+                      <span className="text-amber-400 mt-0.5 shrink-0">!</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {comparison.outlook && (
+            <div className={`rounded-lg border ${accentBorder} ${accentBg} px-3 py-2`}>
+              <span className={`font-mono text-xs ${accentColor} uppercase tracking-wider`}>Outlook: </span>
+              <span className="text-xs text-neutral-400">{comparison.outlook}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Dashboard({ analysis, onNewAnalysis }) {
   const { id, timestamp, company_name, result } = analysis
   const { toast } = useToast()
   const [mode, setMode] = useState('attack')
+  const [comparison, setComparison] = useState(null)
+  const [comparisonLoading, setComparisonLoading] = useState(false)
+  const [comparisonOpen, setComparisonOpen] = useState(true)
+
+  useEffect(() => {
+    if (!id) return
+    setComparisonLoading(true)
+    const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+    fetch(`${base}/api/analyses/${id}/comparison`)
+      .then(r => {
+        if (r.status === 204 || r.status === 404) return null
+        return r.json()
+      })
+      .then(data => { setComparison(data); setComparisonLoading(false) })
+      .catch(() => setComparisonLoading(false))
+  }, [id])
 
   const riskStyle     = RISK_COLORS[result.risk_level] || RISK_COLORS.MEDIUM
   const formattedDate = (() => { try { return new Date(timestamp).toLocaleString() } catch { return timestamp } })()
@@ -338,6 +432,22 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
           BENTO TILE GRID
       ══════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+        {/* ── Comparison insight tile (shown only when prior analysis exists) ── */}
+        {comparisonLoading && (
+          <div className="md:col-span-12 serai-card p-4 flex items-center gap-3 fade-in-up">
+            <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+            <span className="font-mono text-xs text-neutral-600">Loading comparison insight...</span>
+          </div>
+        )}
+        {comparison && !comparisonLoading && (
+          <ComparisonTile
+            comparison={comparison}
+            isOpen={comparisonOpen}
+            onToggle={() => setComparisonOpen(o => !o)}
+            mode={mode}
+          />
+        )}
 
         {/* ── Tile 1: Score ring + dimension bars ── */}
         <div className="md:col-span-4 serai-card p-5 fade-in-up"

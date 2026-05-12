@@ -69,7 +69,8 @@ function EmployeeRow({ emp, index, onChange, onRemove }) {
   )
 }
 
-export default function PeopleSection({ data, setData }) {
+export default function PeopleSection({ data, setData, changedFields = new Set(), sectionKey = 'people' }) {
+  const changed = (field) => changedFields.has(`${sectionKey}.${field}`)
   const progressValues = [
     data.total_employees_approx,
     data.employees,
@@ -111,9 +112,12 @@ export default function PeopleSection({ data, setData }) {
 
       {/* Headcount */}
       <FieldGroup>
-        <label className="serai-label">Approximate Headcount</label>
+        <label className="serai-label">
+          Approximate Headcount
+          {changed('total_employees_approx') && <span className="ml-2 text-blue-400 text-xs font-mono">● updated</span>}
+        </label>
         <input
-          className="serai-input max-w-xs"
+          className={`serai-input max-w-xs${changed('total_employees_approx') ? ' ring-2 ring-blue-500/60' : ''}`}
           placeholder="e.g. 50–100, ~500, 1,200+"
           value={data.total_employees_approx}
           onChange={e => setData(d => ({ ...d, total_employees_approx: e.target.value }))}

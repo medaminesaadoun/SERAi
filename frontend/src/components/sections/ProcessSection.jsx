@@ -9,7 +9,8 @@ const OSINT_TOOLS = [
   { name: 'Crunchbase', url: 'https://crunchbase.com',        desc: 'Partner and investor relationships' },
 ]
 
-export default function ProcessSection({ data, setData }) {
+export default function ProcessSection({ data, setData, changedFields = new Set(), sectionKey = 'processes' }) {
+  const changed = (field) => changedFields.has(`${sectionKey}.${field}`)
   const progressValues = [
     data.ticketing_system_visible,
     data.onboarding_docs_public,
@@ -81,9 +82,12 @@ export default function ProcessSection({ data, setData }) {
       {/* Vendor relationships + Process leaks - side by side on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FieldGroup>
-          <label className="serai-label">Known Vendor / Partner Relationships</label>
+          <label className="serai-label">
+            Known Vendor / Partner Relationships
+            {changed('vendor_relationships') && <span className="ml-2 text-blue-400 text-xs font-mono">● updated</span>}
+          </label>
           <AutoTextarea
-            className="serai-input"
+            className={`serai-input${changed('vendor_relationships') ? ' ring-2 ring-blue-500/60' : ''}`}
             minRows={3}
             placeholder="e.g. AWS Premier Partner, uses Salesforce (named in press release), Microsoft Gold Partner…"
             value={data.vendor_relationships}
@@ -93,9 +97,12 @@ export default function ProcessSection({ data, setData }) {
         </FieldGroup>
 
         <FieldGroup>
-          <label className="serai-label">Other Internal Process Leaks</label>
+          <label className="serai-label">
+            Other Internal Process Leaks
+            {changed('internal_process_leaks') && <span className="ml-2 text-blue-400 text-xs font-mono">● updated</span>}
+          </label>
           <AutoTextarea
-            className="serai-input"
+            className={`serai-input${changed('internal_process_leaks') ? ' ring-2 ring-blue-500/60' : ''}`}
             minRows={3}
             placeholder="e.g. Approval workflows described in public blog posts, interview questions on Glassdoor reveal security procedures, supply chain partners named in annual reports…"
             value={data.internal_process_leaks}

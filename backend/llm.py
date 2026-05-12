@@ -288,6 +288,72 @@ async def test_model_inference() -> dict:
             }
 
 
+async def generate_comparison_insight(current: dict, previous: dict) -> dict:
+    """Compare two analysis results and generate AI insight about what changed."""
+    def fmt_scores(r):
+        ds = r.get("dimension_scores", {})
+        return (
+            f"Global: {r.get('global_score')} ({r.get('risk_level')})\n"
+            f"  People: {ds.get('people')}  Technology: {ds.get('technology')}  "
+            f"Processes: {ds.get('processes')}  Digital Footprint: {ds.get('digital_footprint')}"
+        )
+
+    prompt = f"""You are a security analyst comparing two social engineering risk assessments for the same organization.
+
+PREVIOUS ASSESSMENT ({previous.get('timestamp', 'earlier')}):
+{fmt_scores(previous['analysis_result'])}
+Top targets: {', '.join(t['name'] for t in previous['analysis_result'].get('priority_targets', [])[:3])}
+
+CURRENT ASSESSMENT ({current.get('timestamp', 'now')}):
+{fmt_scores(current['analysis_result'])}
+Top targets: {', '.join(t['name'] for t in current['analysis_result'].get('priority_targets', [])[:3])}
+
+Score delta: {current['analysis_result'].get('global_score', 0) - previous['analysis_result'].get('global_score', 0):+d}
+
+Respond ONLY with valid JSON:
+{{
+  "score_delta": <integer, negative means improvement>,
+  "period": "<from date> to <to date>",
+  "summary": "<2-3 sentence narrative explaining what changed and why>",
+  "top_improvements": ["<specific improvement>", ...],
+  "remaining_risks": ["<still elevated risk>", ...],
+  "outlook": "<one forward-looking sentence>"
+}}
+/no_think"""
+
+    async with httpx.AsyncClient() as client:
+        model = await get_available_model(client)
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a security analyst. Respond ONLY with valid JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            "stream": False,
+            "think": False,
+            "options": {"temperature": 0.1, "num_predict": 1024},
+        }
+        try:
+            resp = await client.post(
+                f"{OLLAMA_URL}/api/chat",
+                json=payload,
+                timeout=httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0),
+            )
+            resp.raise_for_status()
+            content = resp.json()["message"]["content"]
+            data = extract_json(content)
+            return data
+        except Exception as e:
+            return {
+                "score_delta": current['analysis_result'].get('global_score', 0) - previous['analysis_result'].get('global_score', 0),
+                "period": f"{previous.get('timestamp', '')[:10]} to {current.get('timestamp', '')[:10]}",
+                "summary": "Security posture has changed since the last assessment.",
+                "top_improvements": [],
+                "remaining_risks": [],
+                "outlook": "Continue monitoring and implementing recommendations.",
+            }
+
+
 async def check_ollama_health() -> dict:
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
