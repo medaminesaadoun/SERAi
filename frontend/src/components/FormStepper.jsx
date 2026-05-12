@@ -340,19 +340,19 @@ export default function FormStepper({ onComplete }) {
               onChange={e => setCompanyName(e.target.value)}
             />
             {profiles.length > 0 && (
-              <div className="relative mt-2">
+              <div className="mt-2">
                 <button
                   type="button"
                   onClick={() => setProfilesOpen(o => !o)}
                   className="flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-accent transition-colors"
                 >
-                  <svg className={`w-3 h-3 transition-transform ${profilesOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className={`w-3 h-3 transition-transform duration-200 ${profilesOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                   {profileName ? `Profile: ${profileName}` : 'Load saved company...'}
                 </button>
                 {profilesOpen && (
-                  <div className="absolute top-full left-0 z-[200] mt-1 min-w-64 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+                  <div className="mt-1 border border-border rounded-lg overflow-hidden">
                     {profiles.map(p => (
                       <button
                         key={p.id}
@@ -363,7 +363,7 @@ export default function FormStepper({ onComplete }) {
                             .catch(() => toast.error('Failed to load profile.'))
                           setProfilesOpen(false)
                         }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors flex items-center justify-between gap-6 group"
+                        className="w-full px-4 py-2.5 text-left bg-card hover:bg-accent/10 transition-colors flex items-center justify-between gap-6 group border-b border-border/50 last:border-0"
                       >
                         <span className="font-medium text-sm text-neutral-300 group-hover:text-accent">{p.name}</span>
                         <span className="font-mono text-xs text-neutral-600 shrink-0">{new Date(p.updated_at).toLocaleDateString()}</span>
