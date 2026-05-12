@@ -272,6 +272,14 @@ async def create_profile(req: ProfileSaveRequest):
     return ProfileResponse(**result)
 
 
+@app.get("/api/profiles/{profile_id}")
+async def get_profile_detail(profile_id: str):
+    data = await get_profile(profile_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return data
+
+
 @app.put("/api/profiles/{profile_id}", response_model=ProfileResponse)
 async def update_profile_route(profile_id: str, req: ProfileSaveRequest):
     data = await get_profile(profile_id)

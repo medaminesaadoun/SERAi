@@ -301,43 +301,6 @@ export default function FormStepper({ onComplete }) {
             </div>
           </div>
 
-          {/* Profile picker */}
-          {profiles.length > 0 && (
-            <div className="mb-4 fade-in-up relative">
-              <button
-                type="button"
-                onClick={() => setProfilesOpen(o => !o)}
-                className="w-full serai-input text-left flex items-center justify-between text-neutral-400 hover:text-neutral-200 transition-colors"
-              >
-                <span className="font-mono text-xs">
-                  {profileName ? `Profile: ${profileName}` : 'Load existing company...'}
-                </span>
-                <svg className={`w-4 h-4 transition-transform ${profilesOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {profilesOpen && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
-                  {profiles.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
-                        axios.get(`${base}/api/profiles/${p.id}`)
-                          .then(r => loadProfile(r.data))
-                          .catch(() => toast.error('Failed to load profile.'))
-                      }}
-                      className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors flex items-center justify-between group"
-                    >
-                      <span className="font-medium text-sm text-neutral-300 group-hover:text-accent">{p.name}</span>
-                      <span className="font-mono text-xs text-neutral-600">{new Date(p.updated_at).toLocaleDateString()}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Company name */}
           <div className="mb-8 fade-in-up">
             <div className="flex items-center justify-between mb-1">
@@ -376,6 +339,40 @@ export default function FormStepper({ onComplete }) {
               value={companyName}
               onChange={e => setCompanyName(e.target.value)}
             />
+            {profiles.length > 0 && (
+              <div className="relative mt-2">
+                <button
+                  type="button"
+                  onClick={() => setProfilesOpen(o => !o)}
+                  className="flex items-center gap-1.5 font-mono text-xs text-neutral-500 hover:text-accent transition-colors"
+                >
+                  <svg className={`w-3 h-3 transition-transform ${profilesOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {profileName ? `Profile: ${profileName}` : 'Load saved company...'}
+                </button>
+                {profilesOpen && (
+                  <div className="absolute top-full left-0 z-[200] mt-1 min-w-64 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+                    {profiles.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+                          axios.get(`${base}/api/profiles/${p.id}`)
+                            .then(r => loadProfile(r.data))
+                            .catch(() => toast.error('Failed to load profile.'))
+                          setProfilesOpen(false)
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-accent/10 transition-colors flex items-center justify-between gap-6 group"
+                      >
+                        <span className="font-medium text-sm text-neutral-300 group-hover:text-accent">{p.name}</span>
+                        <span className="font-mono text-xs text-neutral-600 shrink-0">{new Date(p.updated_at).toLocaleDateString()}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Section card */}
