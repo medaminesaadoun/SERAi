@@ -330,6 +330,7 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
   const { toast } = useToast()
   const [mode, setMode] = useState('attack')
   const [activePlaybook, setActivePlaybook] = useState(null)
+  const playbookCache = useRef({})
   const [comparison, setComparison] = useState(null)
   const [comparisonLoading, setComparisonLoading] = useState(false)
   const [comparisonOpen, setComparisonOpen] = useState(true)
@@ -787,6 +788,8 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
             tech_stack: '',
             exposed_services: '',
           }}
+          cachedText={playbookCache.current[activePlaybook.title] || ''}
+          onCache={(title, text) => { playbookCache.current[title] = text }}
           onClose={() => setActivePlaybook(null)}
         />
       )}

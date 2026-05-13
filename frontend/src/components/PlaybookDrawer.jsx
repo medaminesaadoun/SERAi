@@ -64,16 +64,22 @@ function PlaybookContent({ text, streaming }) {
   )
 }
 
-export default function PlaybookDrawer({ scenario, companyName, mode, context, onClose }) {
+export default function PlaybookDrawer({ scenario, companyName, mode, context, onClose, cachedText = '', onCache = () => {} }) {
   const [text, setText] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const scrollRef = useRef(null)
+  const accumRef = useRef('')
   const isAtk = mode === 'attack'
 
   useEffect(() => {
-    startStream()
+    if (cachedText) {
+      setText(cachedText)
+      setDone(true)
+    } else {
+      startStream()
+    }
   }, [])
 
   useEffect(() => {
@@ -87,6 +93,7 @@ export default function PlaybookDrawer({ scenario, companyName, mode, context, o
     setDone(false)
     setError('')
     setStreaming(true)
+    accumRef.current = ''
 
     try {
       const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
@@ -113,8 +120,15 @@ export default function PlaybookDrawer({ scenario, companyName, mode, context, o
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
-            if (event.type === 'token') setText(t => t + event.content)
-            if (event.type === 'done') { setDone(true); setStreaming(false) }
+            if (event.type === 'token') {
+              accumRef.current += event.content
+              setText(t => t + event.content)
+            }
+            if (event.type === 'done') {
+              onCache(scenario.title, accumRef.current)
+              setDone(true)
+              setStreaming(false)
+            }
             if (event.type === 'error') throw new Error(event.message)
           } catch { /* skip malformed */ }
         }
@@ -162,7 +176,7 @@ export default function PlaybookDrawer({ scenario, companyName, mode, context, o
           <div className="flex items-center gap-2 shrink-0">
             {done && (
               <button
-                onClick={startStream}
+                onClick={() => { onCache(scenario.title, ''); startStream() }}
                 className="font-mono text-xs text-neutral-500 hover:text-accent transition-colors flex items-center gap-1"
                 title="Regenerate"
               >
@@ -192,7 +206,7 @@ export default function PlaybookDrawer({ scenario, companyName, mode, context, o
         )}
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 pb-20">
           {error ? (
             <div className="text-red-400 font-mono text-sm">{error}</div>
           ) : text ? (
