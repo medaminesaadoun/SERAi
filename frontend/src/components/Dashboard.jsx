@@ -788,8 +788,8 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
             tech_stack: '',
             exposed_services: '',
           }}
-          cachedText={playbookCache.current[activePlaybook.title] || ''}
-          onCache={(title, text) => { playbookCache.current[title] = text }}
+          cachedText={playbookCache.current[`${activePlaybook.title}__${mode}`] || ''}
+          onCache={(title, text) => { playbookCache.current[`${title}__${mode}`] = text }}
           onClose={() => setActivePlaybook(null)}
         />
       )}

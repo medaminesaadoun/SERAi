@@ -105,6 +105,13 @@ Respond with ONLY this JSON structure (no markdown, no explanation):
   "executive_summary": "<2-3 non-technical sentences summarizing overall risk>"
 }}
 
+Quality requirements (apply to ALL string fields):
+- executive_summary: minimum 3-4 sentences, name specific risks tied to this company's actual exposure
+- attack_scenarios[].description: minimum 2-3 sentences, reference specific technologies/people/services from the intel above
+- recommendations[].description: minimum 2-3 sentences with concrete implementation steps, not generic advice
+- priority_targets[].protection: name the specific missing control (e.g. "No MFA on VPN portal" not "Improve security")
+- Never output generic placeholder text - every field must reference actual data provided above
+
 /no_think"""
     return prompt
 
@@ -327,10 +334,10 @@ Respond ONLY with valid JSON:
 {{
   "score_delta": <integer, negative means improvement>,
   "period": "<from date> to <to date>",
-  "summary": "<2-3 sentence narrative explaining what changed and why>",
-  "top_improvements": ["<specific improvement>", ...],
-  "remaining_risks": ["<still elevated risk>", ...],
-  "outlook": "<one forward-looking sentence>"
+  "summary": "<3-4 sentences: what specifically changed, why scores shifted, what the trend means for this organization>",
+  "top_improvements": ["<3-5 specific items: what was concretely done or removed, not vague statements like 'security improved'>", ...],
+  "remaining_risks": ["<3-5 specific items: name the exact risk that persists and why it hasn't been resolved>", ...],
+  "outlook": "<1-2 sentences naming the single most important next action and its expected impact>"
 }}
 /no_think"""
 
@@ -344,7 +351,7 @@ Respond ONLY with valid JSON:
             ],
             "stream": False,
             "think": False,
-            "options": {"temperature": 0.1, "num_predict": 1024},
+            "options": {"temperature": 0.1, "num_predict": 2048},
         }
         try:
             resp = await client.post(
@@ -405,8 +412,11 @@ Write a structured playbook with EXACTLY these 6 sections in order, each startin
 
 Rules:
 - Be specific to this company's actual intel - reference real names, real technologies, real services
-- Each section should be 3-6 concrete, actionable bullet points or short paragraphs
-- For Initial Contact in ATK mode: include a realistic draft message/subject line/pretext script
+- Each section MUST contain at least 4 specific, actionable items - never generic advice
+- Reference the actual company name, actual employee names/roles, actual technologies/services listed above
+- For Initial Contact in ATK mode: write the FULL draft message or call script verbatim, not just a description of one
+- Name real tools (Maltego, theHarvester, Gophish, Metasploit, SET, Burp Suite) and real techniques where applicable
+- DEF mode: specify concrete detection rules (which log sources, what to alert on), not just "monitor for suspicious activity"
 - {framing}
 
 /no_think"""
@@ -421,7 +431,7 @@ Rules:
             ],
             "stream": True,
             "think": False,
-            "options": {"temperature": 0.3, "num_predict": 2048},
+            "options": {"temperature": 0.3, "num_predict": 3072},
         }
 
         async with client.stream(
