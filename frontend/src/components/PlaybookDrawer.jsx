@@ -36,6 +36,15 @@ function parsePlaybook(text) {
   return parts
 }
 
+function renderInline(text) {
+  const parts = text.split(/\*\*(.*?)\*\*/g)
+  return parts.map((part, i) =>
+    i % 2 === 1
+      ? <strong key={i} className="text-neutral-200 font-semibold">{part}</strong>
+      : part
+  )
+}
+
 function PlaybookContent({ text, streaming }) {
   const parts = parsePlaybook(text)
 
@@ -51,7 +60,7 @@ function PlaybookContent({ text, streaming }) {
                   : part.heading
                 }
               </div>
-              <div className="whitespace-pre-wrap text-neutral-400">{part.content}</div>
+              <div className="whitespace-pre-wrap text-neutral-400">{renderInline(part.content)}</div>
             </div>
           )
         }
