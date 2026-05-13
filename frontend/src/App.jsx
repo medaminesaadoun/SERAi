@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ModelSelector from './components/ModelSelector'
 import axios from 'axios'
 import { ThemeProvider, useTheme } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
@@ -125,6 +126,7 @@ function AppInner() {
           {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-4">
             <StatusPill health={health} />
+            <ModelSelector />
             <nav className="flex gap-1">
               {NAV_LINKS.map(({ v, label }) => (
                 <button key={v} onClick={() => navigate(v)}

@@ -12,6 +12,17 @@ PRIMARY_MODEL = "qwen3.5:4b"
 FALLBACK_MODEL = "llama3.1:8b"
 MAX_RETRIES = 3
 
+_active_model: str | None = None
+
+
+def get_active_model() -> str | None:
+    return _active_model
+
+
+def set_active_model(model: str | None):
+    global _active_model
+    _active_model = model
+
 SYSTEM_PROMPT = """You are an expert red team consultant specializing in social engineering risk assessment.
 Analyze the provided organizational exposure data and respond ONLY with valid JSON matching the exact schema provided.
 Do not include any explanation, markdown formatting, or text outside the JSON object.
@@ -126,7 +137,9 @@ def extract_json(text: str) -> dict:
 
 
 async def get_available_model(client: httpx.AsyncClient) -> str:
-    """Return PRIMARY_MODEL if available, else FALLBACK_MODEL."""
+    """Return the user-selected model, or auto-detect PRIMARY/FALLBACK."""
+    if _active_model:
+        return _active_model
     try:
         resp = await client.get(f"{OLLAMA_URL}/api/tags", timeout=5.0)
         if resp.status_code == 200:

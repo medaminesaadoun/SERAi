@@ -1,4 +1,5 @@
 import json
+import httpx
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pathlib import Path
 
 from database import init_db, save_analysis, get_all_analyses, get_analysis, update_pdf_path, delete_analysis, save_profile, get_all_profiles, get_profile, update_profile, delete_profile, get_analyses_by_company
-from llm import run_analysis, check_ollama_health, stream_analysis, test_model_inference, generate_comparison_insight, stream_playbook
+from llm import run_analysis, check_ollama_health, stream_analysis, test_model_inference, generate_comparison_insight, stream_playbook, get_active_model, set_active_model, PRIMARY_MODEL, OLLAMA_URL
 from models import AnalysisRequest, AnalysisResponse, AnalysisResult, AnalysisSummary, HealthResponse, ComparisonInsight, ProfileSaveRequest, ProfileResponse, PlaybookRequest
 from pdf_generator import generate_pdf, PDF_AVAILABLE
 
@@ -256,6 +257,33 @@ async def get_pdf(analysis_id: str):
         media_type="application/pdf",
         filename=f"SERAi-report-{data['company_name'].replace(' ', '_')}.pdf",
     )
+
+
+# -- Model selector endpoints -------------------------------------------------
+
+@app.get("/api/models")
+async def list_models():
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{OLLAMA_URL}/api/tags")
+            if resp.status_code == 200:
+                models = resp.json().get("models", [])
+                return {
+                    "models": [{"name": m["name"], "size": m.get("size", 0)} for m in models],
+                    "active": get_active_model() or PRIMARY_MODEL,
+                }
+    except Exception:
+        pass
+    return {"models": [], "active": get_active_model() or PRIMARY_MODEL}
+
+
+@app.post("/api/settings/model")
+async def select_model(body: dict):
+    model = body.get("model", "").strip()
+    if not model:
+        raise HTTPException(status_code=400, detail="model name required")
+    set_active_model(model)
+    return {"active": model}
 
 
 # -- Playbook endpoint --------------------------------------------------------
