@@ -56,6 +56,7 @@ export const DEMO_ANALYSIS = {
         likelihood: 'HIGH',
         impact: 'HIGH',
         mitre_technique: 'T1566.002 - Spearphishing Link',
+        mitre_tactic: 'TA0001',
       },
       {
         title: 'DevOps Credential Harvesting via Fake Job Portal',
@@ -65,6 +66,7 @@ export const DEMO_ANALYSIS = {
         likelihood: 'MEDIUM',
         impact: 'HIGH',
         mitre_technique: 'T1078 - Valid Accounts',
+        mitre_tactic: 'TA0001',
       },
       {
         title: 'Malicious PDF via Fake Candidate Application',
@@ -74,6 +76,7 @@ export const DEMO_ANALYSIS = {
         likelihood: 'MEDIUM',
         impact: 'HIGH',
         mitre_technique: 'T1204.002 - Malicious File',
+        mitre_tactic: 'TA0002',
       },
       {
         title: 'AWS Credential Exposure via Public GitHub Repo',
@@ -83,6 +86,7 @@ export const DEMO_ANALYSIS = {
         likelihood: 'HIGH',
         impact: 'MEDIUM',
         mitre_technique: 'T1552.001 - Credentials In Files',
+        mitre_tactic: 'TA0006',
       },
     ],
 

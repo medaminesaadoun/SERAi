@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import AnalysisLoader from './AnalysisLoader'
+import PartialSaveDialog from './PartialSaveDialog'
 import { getRandomProfile } from '../data/sampleFills'
 import PeopleSection from './sections/PeopleSection'
 import TechSection from './sections/TechSection'
@@ -10,6 +11,10 @@ import { ConsentTooltip } from './OnboardingTooltip'
 import { useToast } from '../context/ToastContext'
 import AuthorizationModal from './AuthorizationModal'
 import { useProfileDiff } from '../hooks/useProfileDiff'
+import { useDraft, findDraftForCompany } from '../hooks/useDraft'
+import { useAIStore } from '../context/AIStoreContext'
+
+const genOpId = () => `op-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 const STEPS = [
   { id: 0, label: 'Personnes',          sublabel: 'People & org exposure'   },
@@ -40,6 +45,13 @@ export default function FormStepper({ onComplete }) {
   const [loading, setLoading]             = useState(false)
   const [streamEvent, setStreamEvent]     = useState(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [partialDialog, setPartialDialog] = useState(null)  // {analysisId, progressPct, partialText, companyName}
+  const [cancelledStubId, setCancelledStubId] = useState(null)
+  const abortRef = useRef(null)
+  const opIdRef  = useRef(null)
+  const tasksRef = useRef([])
+  const mountedRef = useRef(true)
+  const store    = useAIStore()
   const { toast } = useToast()
 
   // Profile state
@@ -57,6 +69,16 @@ export default function FormStepper({ onComplete }) {
   useEffect(() => {
     const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
     axios.get(`${base}/api/profiles`).then(r => setProfiles(r.data)).catch(() => {})
+  }, [])
+
+  // Unregister any in-flight AI op when the form unmounts (e.g. user navigates away)
+  useEffect(() => {
+    return () => {
+      if (opIdRef.current) {
+        store.unregister(opIdRef.current, { persistMs: 0 })
+        opIdRef.current = null
+      }
+    }
   }, [])
 
   const sectionData = [
@@ -129,6 +151,26 @@ export default function FormStepper({ onComplete }) {
     if (!authorized) { toast.warning('You must confirm authorization before submitting.'); return }
     setLoading(true)
     setStreamEvent(null)
+    setCancelledStubId(null)
+    tasksRef.current = []
+
+    // Pre-generate a temporary stub id so the partial draft can be linked to it
+    // if the user cancels and then chooses to keep the draft.
+    const tempStubId = `cancelled-${Date.now()}`
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    // Register with the global AI activity bar
+    const opId = genOpId()
+    opIdRef.current = opId
+    store.register(opId, {
+      kind: 'analysis',
+      label: `Analysis · ${companyName || 'Unknown'}`,
+      streaming: true,
+    })
+    store.attachController(opId, controller)
+
     try {
       const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
       const url = `${base}/api/analyze/stream`
@@ -145,6 +187,7 @@ export default function FormStepper({ onComplete }) {
           processes,
           digital_footprint: digitalFootprint,
         }),
+        signal: controller.signal,
       })
 
       console.log('[SSE] Response status', response.status, response.headers.get('content-type'))
@@ -158,6 +201,7 @@ export default function FormStepper({ onComplete }) {
       const decoder = new TextDecoder()
       let buffer    = ''
       let chunkCount = 0
+      let accumulatedText = ''
 
       while (true) {
         const { done, value } = await reader.read()
@@ -174,27 +218,165 @@ export default function FormStepper({ onComplete }) {
           if (!line.startsWith('data: ')) continue
           try {
             const event = JSON.parse(line.slice(6))
+            if (event.type === 'token') accumulatedText += event.content
             if (event.type !== 'token') console.log('[SSE] event:', event.type, event)
             setStreamEvent(event)
-            if (event.type === 'done') {
-              toast.success('Analysis complete!')
+
+            // ── Mirror to global AI activity bar ──
+            if (event.type === 'task') {
+              const idx = tasksRef.current.findIndex(t => t.id === event.id)
+              const taskRec = {
+                id: event.id,
+                label: event.label,
+                status: event.status,
+                elapsed_ms: event.elapsed_ms,
+                error: event.error,
+              }
+              if (idx === -1) {
+                tasksRef.current = [...tasksRef.current, taskRec]
+              } else {
+                tasksRef.current = tasksRef.current.map((t, i) => i === idx ? taskRec : t)
+              }
+              store.update(opId, { tasks: tasksRef.current, streaming: true })
+            } else if (event.type === 'token') {
+              store.update(opId, {
+                tokenCount: accumulatedText.split(/\s+/).filter(Boolean).length,
+                partialText: accumulatedText,
+                streaming: true,
+              })
+            } else if (event.type === 'cache_hit') {
+              toast.success(`Cache hit · ${event.elapsed_ms ?? 0}ms`, 2500)
+              store.unregister(opId, { persistMs: 1500 })
+              opIdRef.current = null
+            } else if (event.type === 'done') {
+              if (event.analysis?.cache?.hit) {
+                toast.success('Instant result from cache', 3000)
+              } else {
+                toast.success('Analysis complete!')
+              }
+              store.unregister(opId, { persistMs: 1500 })
+              opIdRef.current = null
               onComplete(event.analysis)
               return
+            } else if (event.type === 'cancelled') {
+              if (!mountedRef.current) return
+              // Server detected the disconnect and wrote a stub. Offer to keep the partial.
+              const stubId = event.analysis_id
+              setCancelledStubId(stubId)
+              setPartialDialog({
+                analysisId: stubId,
+                companyName,
+                progressPct: event.progress_pct || 0.5,
+                partialText: event.partial_text || accumulatedText,
+                tasksCompleted: event.tasks_completed || [],
+                formDataHash: '',  // We don't have it client-side; backend can compute
+              })
+              toast.warning('Analysis cancelled', 3000)
+              store.unregister(opId, { persistMs: 1500 })
+              opIdRef.current = null
+              return
+            } else if (event.type === 'error') {
+              throw new Error(event.message)
             }
-            if (event.type === 'error') throw new Error(event.message)
-          } catch (_) { /* skip malformed lines */ }
+          } catch (e) {
+            if (e && e.message) throw e
+          }
         }
       }
     } catch (e) {
-      toast.error(e.message || 'Analysis failed. Is Ollama running?', 7000)
+      if (!mountedRef.current) return
+      if (e.name === 'AbortError') {
+        // Client-side cancel: also show partial dialog with whatever we have
+        setPartialDialog({
+          analysisId: null,
+          companyName,
+          progressPct: 0.4,
+          partialText: '',
+          tasksCompleted: [],
+          formDataHash: '',
+        })
+        if (opIdRef.current) {
+          store.unregister(opIdRef.current, { persistMs: 1500 })
+          opIdRef.current = null
+        }
+      } else {
+        toast.error(e.message || 'Analysis failed. Is Ollama running?', 7000)
+        if (opIdRef.current) {
+          store.unregister(opIdRef.current, { persistMs: 0 })
+          opIdRef.current = null
+        }
+      }
     } finally {
       setLoading(false)
+      abortRef.current = null
     }
   }
 
+  const handleCancel = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort()
+    }
+  }, [])
+
+  const handleKeepDraft = useCallback(async () => {
+    if (!partialDialog) return
+    const { analysisId, partialText, progressPct, companyName: cName, tasksCompleted } = partialDialog
+    if (!analysisId) {
+      // No stub to attach to - just keep in localStorage
+      toast.info('Draft saved locally (no server stub)')
+      setPartialDialog(null)
+      return
+    }
+    try {
+      const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+      const resp = await fetch(`${base}/api/drafts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis_id: analysisId,
+          company_name: cName,
+          form_data_hash: partialDialog.formDataHash || `${analysisId}-${Date.now()}`,
+          partial_text: partialText || '',
+          progress_pct: progressPct || 0,
+          tasks_completed: tasksCompleted || [],
+        }),
+      })
+      if (resp.ok) {
+        toast.success('Draft saved · 7-day retention')
+      } else {
+        toast.warning('Draft saved locally only')
+      }
+    } catch (e) {
+      toast.warning('Draft saved locally only')
+    }
+    setPartialDialog(null)
+  }, [partialDialog, toast])
+
+  const handleDiscard = useCallback(() => {
+    setPartialDialog(null)
+    setCancelledStubId(null)
+  }, [])
+
   const isSubmitStep = step === 4
 
-  if (loading) return <AnalysisLoader company={companyName} streamEvent={streamEvent} />
+  if (loading) return (
+    <>
+      <AnalysisLoader
+        company={companyName}
+        streamEvent={streamEvent}
+        onCancel={handleCancel}
+      />
+      <PartialSaveDialog
+        open={!!partialDialog}
+        companyName={partialDialog?.companyName || companyName}
+        progressPct={partialDialog?.progressPct}
+        partialText={partialDialog?.partialText}
+        onKeepDraft={handleKeepDraft}
+        onDiscard={handleDiscard}
+        onClose={handleDiscard}
+      />
+    </>
+  )
 
   return (
     <>

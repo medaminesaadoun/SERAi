@@ -3,6 +3,7 @@ import ModelSelector from './components/ModelSelector'
 import axios from 'axios'
 import { ThemeProvider, useTheme } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
+import { AIStoreProvider } from './context/AIStoreContext'
 import ThemeSwitcher from './components/ThemeSwitcher'
 import Toaster from './components/Toaster'
 import LandingPage from './components/LandingPage'
@@ -10,6 +11,9 @@ import FormStepper from './components/FormStepper'
 import Dashboard from './components/Dashboard'
 import AnalysisHistory from './components/AnalysisHistory'
 import AnalysisLoader from './components/AnalysisLoader'
+import AIActivityBar from './components/AIActivityBar'
+import StreamAIBridge from './components/StreamAIBridge'
+import BackgroundStreamToasts from './components/BackgroundStreamToasts'
 import { DEMO_ANALYSIS } from './data/demoAnalysis'
 
 const API = '/api'
@@ -184,6 +188,9 @@ function AppInner() {
         )}
       </header>
 
+      {/* AI Activity Bar (sticky under header) */}
+      <AIActivityBar />
+
       {/* ── Content ── */}
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-6xl mx-auto w-full relative z-10">
         {view === 'home'    && <div className="fade-in-up"><LandingPage onStart={() => navigate('form')} onDemo={handleDemo} /></div>}
@@ -210,8 +217,12 @@ export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AppInner />
-        <Toaster />
+        <AIStoreProvider>
+          <AppInner />
+          <Toaster />
+          <StreamAIBridge />
+          <BackgroundStreamToasts />
+        </AIStoreProvider>
       </ToastProvider>
     </ThemeProvider>
   )

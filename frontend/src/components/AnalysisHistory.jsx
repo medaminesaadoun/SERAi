@@ -195,6 +195,7 @@ export default function AnalysisHistory({ onSelect }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedCompany, setSelectedCompany] = useState('')
+  const [draftViewer, setDraftViewer] = useState(null)  // {draft, loading}
 
   useEffect(() => {
     const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
@@ -210,6 +211,17 @@ export default function AnalysisHistory({ onSelect }) {
       onSelect(res.data)
     } catch (e) {
       alert('Failed to load analysis: ' + e.message)
+    }
+  }
+
+  async function viewDraft(draftId) {
+    setDraftViewer({ draft: null, loading: true })
+    try {
+      const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
+      const res = await axios.get(`${base}/api/drafts/${draftId}`)
+      setDraftViewer({ draft: res.data, loading: false })
+    } catch (e) {
+      setDraftViewer({ draft: null, loading: false, error: e.message })
     }
   }
 
@@ -282,30 +294,138 @@ export default function AnalysisHistory({ onSelect }) {
             try { return new Date(a.timestamp).toLocaleString() }
             catch { return a.timestamp }
           })()
+          const isCancelled = a.status === 'cancelled'
+          const hasDraft = !!a.draft_id
+          const handleClick = () => {
+            if (isCancelled && hasDraft) {
+              viewDraft(a.draft_id)
+            } else {
+              loadAnalysis(a.id)
+            }
+          }
+
           return (
             <button
               key={a.id}
-              onClick={() => loadAnalysis(a.id)}
-              className="w-full serai-card p-4 flex items-center justify-between gap-4 hover:border-accent/40 transition-colors text-left group"
+              onClick={handleClick}
+              className={`w-full serai-card p-4 flex items-center justify-between gap-4 hover:border-accent/40 transition-colors text-left group ${
+                isCancelled ? 'border-yellow-500/20' : ''
+              }`}
             >
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-neutral-200 group-hover:text-accent transition-colors truncate">
-                  {a.company_name}
+                <div className="flex items-center gap-2">
+                  <div className="font-semibold text-neutral-200 group-hover:text-accent transition-colors truncate">
+                    {a.company_name}
+                  </div>
+                  {isCancelled && (
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 border border-yellow-500/40 text-yellow-400 bg-yellow-500/5 uppercase tracking-wider shrink-0">
+                      Cancelled
+                    </span>
+                  )}
+                  {hasDraft && (
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 border border-accent/40 text-accent bg-accent/5 uppercase tracking-wider shrink-0">
+                      Draft
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-neutral-600 font-mono mt-0.5">{date}</div>
+                {isCancelled && a.cancelled_at_pct != null && (
+                  <div className="text-[10px] text-yellow-400/70 font-mono mt-1">
+                    {Math.round(a.cancelled_at_pct * 100)}% complete when cancelled
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
-                  <div className="font-mono font-bold text-xl text-neutral-300">{a.global_score}</div>
-                  <div className="font-mono text-xs text-neutral-600">/100</div>
-                </div>
-                <span className={`badge border ${riskClass}`}>{a.risk_level}</span>
+                {!isCancelled ? (
+                  <>
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-xl text-neutral-300">{a.global_score}</div>
+                      <div className="font-mono text-xs text-neutral-600">/100</div>
+                    </div>
+                    <span className={`badge border ${riskClass}`}>{a.risk_level}</span>
+                  </>
+                ) : (
+                  <span className="font-mono text-xs text-yellow-400/70">
+                    no score
+                  </span>
+                )}
                 <span className="text-neutral-600 group-hover:text-accent transition-colors">-&gt;</span>
               </div>
             </button>
           )
         })}
       </div>
+
+      {/* Draft viewer modal */}
+      {draftViewer && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm fade-in-up"
+             onClick={() => setDraftViewer(null)}>
+          <div className="relative w-full max-w-3xl bg-bg border border-border rounded-sm shadow-2xl overflow-hidden"
+               style={{ backgroundColor: 'var(--bg-hex)' }}
+               onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-black/30">
+              <div>
+                <div className="font-mono text-xs uppercase tracking-widest text-accent">Draft</div>
+                {draftViewer.draft && (
+                  <div className="text-xs text-neutral-500 font-mono mt-0.5">
+                    {draftViewer.draft.company_name} · {Math.round((draftViewer.draft.progress_pct || 0) * 100)}% complete
+                    {draftViewer.draft.expires_at && (
+                      <> · expires {new Date(draftViewer.draft.expires_at).toLocaleDateString()}</>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setDraftViewer(null)}
+                className="w-7 h-7 flex items-center justify-center border border-border rounded-sm text-neutral-400 hover:text-accent hover:border-accent"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              {draftViewer.loading && (
+                <div className="text-center py-12 font-mono text-neutral-600">Loading draft...</div>
+              )}
+              {draftViewer.error && (
+                <div className="text-red-400 font-mono text-sm">⚠ {draftViewer.error}</div>
+              )}
+              {draftViewer.draft && (
+                <>
+                  {draftViewer.draft.tasks_completed?.length > 0 && (
+                    <div className="mb-3">
+                      <div className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 mb-2">
+                        Steps completed
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {draftViewer.draft.tasks_completed.map(id => (
+                          <span key={id} className="font-mono text-[10px] px-2 py-0.5 bg-green-500/10 border border-green-500/30 text-green-400 rounded-sm">
+                            ✓ {id}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="border border-border/60 rounded-sm bg-black/30 max-h-96 overflow-y-auto p-4">
+                    <pre className="font-mono text-[11px] text-neutral-400 whitespace-pre-wrap break-words leading-relaxed">
+                      {draftViewer.draft.partial_text || '(no streamed text)'}
+                    </pre>
+                  </div>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(draftViewer.draft.partial_text || '').catch(() => {})}
+                      className="font-mono text-xs px-3 py-1.5 border border-border text-neutral-300 hover:text-accent hover:border-accent/40 rounded-sm uppercase tracking-widest"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

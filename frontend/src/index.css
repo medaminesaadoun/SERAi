@@ -280,6 +280,24 @@
 .toast-out { animation: toast-out 0.3s  cubic-bezier(0.4,0,1,1)    both; }
 
 /* ══════════════════════════════════════════════════════
+   Kill-Chain flow particles
+   ══════════════════════════════════════════════════════ */
+@keyframes flow-particle {
+  from { left: -10%; }
+  to   { left: 110%; }
+}
+
+.kill-chain-scroll::-webkit-scrollbar { height: 6px; }
+.kill-chain-scroll::-webkit-scrollbar-track { background: rgb(var(--color-border) / 0.2); }
+.kill-chain-scroll::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-accent) / 0.4);
+  border-radius: 3px;
+}
+.kill-chain-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-accent) / 0.6);
+}
+
+/* ══════════════════════════════════════════════════════
    INTERACTION DESIGN
    ══════════════════════════════════════════════════════ */
 

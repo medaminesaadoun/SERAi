@@ -1,0 +1,45 @@
+TunPay form input for SERAi demo
+
+==================================================
+PEOPLE section
+==================================================
+Company name: TunPay
+
+Employees (one per line, format: Name | Role | LinkedIn visible | Email):
+Youssef Ben Salah | CEO & Co-Founder | yes | youssef.bensalah@tunpay.tn
+Inès Trabelsi | CTO | yes | ines.trabelsi@tunpay.tn
+Mehdi Hammami | Head of Compliance | yes | mehdi.hammami@tunpay.tn
+Fatma Khelifi | Finance Manager | yes | fatma.khelifi@tunpay.tn
+Ahmed Bouazizi | Senior DevOps Engineer | yes | ahmed.bouazizi@tunpay.tn
+
+Org chart exposed: yes
+Org chart details: Full org chart visible on LinkedIn company page. CTO's recent post (May 2026) lists engineering team structure with team leads and reporting lines. Engineering team has 4 squads: Payments, Wallet, Platform, Compliance.
+Approximate headcount: 85
+
+==================================================
+TECHNOLOGY section
+==================================================
+Public tech stack: Next.js 14 frontend, Node.js 20 + Python 3.12 backend microservices, PostgreSQL 16, Redis, RabbitMQ, Kubernetes on AWS EKS
+Job posting tools: Recent job posts mention Jira, Confluence, GitHub Enterprise, Datadog, PagerDuty, Sentry, Auth0, Stripe, Twilio
+Exposed services/portals: staging.tunpay.tn (401 bypass on /api/admin), admin.tunpay.tn (Cloudflare-protected), dev.tunpay.tn (Jenkins exposed), vpn.tunpay.tn (Cisco AnyConnect), status.tunpay.tn (Statuspage)
+Cloud providers: AWS primary (eu-west-1 Paris + me-south-1 Bahrain), Cloudflare CDN, Twilio for SMS OTP
+Visible frameworks: Next.js (X-Powered-By header), React 18, Tailwind CSS, Nginx 1.25, jQuery 3.7 on legacy admin portal
+
+==================================================
+PROCESSES section
+==================================================
+Ticketing system visible: yes
+Ticketing system name: Jira (referenced in CEO's LinkedIn post about new Jira workflows)
+Public onboarding docs: yes — Google-indexed Notion workspace at tunpay.notion.site/onboarding with employee names, internal Slack channel names, and partially visible vendor API keys
+Known vendor/partner relationships: Twilio (SMS), AWS (cloud), Cloudflare (CDN/DDoS), Stripe (card processing), Auth0 (auth), Datadog (monitoring), Mailgun (transactional email), BCT (regulator)
+Other internal process leaks: Recent engineering blog post (April 2026) describes internal code review process and references the team's GitHub org name. CTO's conference talk at Devoxx Tunisia (March 2026) revealed their CI/CD pipeline uses GitHub Actions + ArgoCD
+
+==================================================
+DIGITAL FOOTPRINT section
+==================================================
+Social media presence: LinkedIn company page active with 78 employees tagged. Twitter/X @TunPay corporate account active with ~3.2k followers. 5 employees with active personal Twitter accounts discussing work publicly.
+Website info: tunpay.tn static marketing site on Cloudflare. WHOIS shows GoDaddy as registrar with admin email admin@tunpay.tn partially redacted. BuiltWith reports Next.js + Cloudflare + Mailgun stack.
+News/press mentions: TechCrunch Africa article (Feb 2026) on Series A funding round, quotes CEO with full name and photo. Jeune Afrique interview (April 2026) on MENA expansion plans naming CTO and Head of Compliance.
+Public GitHub repos: tunpay/mobile-wallet-sdk (public, 2.3k stars), tunpay/api-examples (public), tunpay/.github (public org profile with member list), tunpay/legacy-portal (PUBLIC, last commit 14 months ago, contains .env.example with real Supabase project URL and anon key)
+Pastebin/leak sites: None found
+Other exposure: HaveIBeenPwned shows 3 employee email addresses in the 2024 Collection #1 breach. CTO's Stack Overflow profile (top 0.1% contributor) reveals internal API design patterns. Engineer posted on Reddit r/programming 2 years ago asking about AWS IAM policies with handle u/TunPayDev2024.

@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import asyncio
 import json
 import os
 import re
@@ -9,6 +10,7 @@ from models import AnalysisRequest, AnalysisResult
 
 OLLAMA_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 PRIMARY_MODEL = "qwen3.5:4b"
+CHAT_MODEL = "qwen3:4b-instruct"
 FALLBACK_MODEL = "llama3.1:8b"
 MAX_RETRIES = 3
 
@@ -23,10 +25,62 @@ def set_active_model(model: str | None):
     global _active_model
     _active_model = model
 
+
+async def get_available_chat_model(client: httpx.AsyncClient) -> str:
+    """Return the chat model (qwen3:4b-instruct), or fall back to PRIMARY_MODEL.
+
+    Used by the chat endpoint only. qwen3.5:4b outputs heavy thinking tokens
+    (~30s before any response), so chat uses a dedicated instruct model.
+    Falls back gracefully if the chat model is not installed.
+    """
+    try:
+        resp = await client.get(f"{OLLAMA_URL}/api/tags", timeout=5.0)
+        if resp.status_code == 200:
+            models = [m["name"] for m in resp.json().get("models", [])]
+            normalized = [m.split(":")[0] for m in models]
+            if CHAT_MODEL.split(":")[0] in normalized or CHAT_MODEL in models:
+                return CHAT_MODEL
+            print(
+                f"[LLM] WARNING: {CHAT_MODEL} not installed, "
+                f"chat falling back to {PRIMARY_MODEL}",
+                flush=True,
+            )
+    except Exception as e:
+        print(
+            f"[LLM] WARNING: could not check installed models, "
+            f"chat falling back to {PRIMARY_MODEL}: {e}",
+            flush=True,
+        )
+    return PRIMARY_MODEL
+
 SYSTEM_PROMPT = """You are an expert red team consultant specializing in social engineering risk assessment.
 Analyze the provided organizational exposure data and respond ONLY with valid JSON matching the exact schema provided.
 Do not include any explanation, markdown formatting, or text outside the JSON object.
 Be thorough, realistic, and base your assessment on the actual data provided."""
+
+
+def _backfill_tactics(data: dict) -> None:
+    """Populate `mitre_tactic` for any scenario that didn't include it.
+
+    Falls back to the static MITRE technique->tactic lookup in
+    `mitre_tactics.py`. Runs in-place on the dict before Pydantic validation.
+    If neither the LLM nor the static map knows the technique, leaves
+    `mitre_tactic` as `None` so the issue is visible rather than silently
+    grouped into Initial Access.
+    """
+    from mitre_tactics import infer_tactic
+    for scenario in data.get("attack_scenarios", []) or []:
+        if not scenario.get("mitre_tactic"):
+            tactic = infer_tactic(scenario.get("mitre_technique", ""))
+            if tactic:
+                scenario["mitre_tactic"] = tactic[0]
+            else:
+                print(
+                    f"[WARN] No MITRE tactic for technique "
+                    f"'{scenario.get('mitre_technique', '?')}' "
+                    f"(scenario: '{scenario.get('title', '?')[:60]}') — leaving None",
+                    flush=True,
+                )
 
 
 def build_user_prompt(request: AnalysisRequest) -> str:
@@ -36,6 +90,59 @@ def build_user_prompt(request: AnalysisRequest) -> str:
         employees_text += f"  - {emp.name} ({emp.role}): {linkedin}, email format: {emp.email_format or 'unknown'}\n"
 
     prompt = f"""Analyze the social engineering attack surface for organization: "{request.company_name}"
+
+== VALID MITRE ATT&CK TECHNIQUE IDs (USE THESE — do not invent IDs) ==
+Each scenario must use ONE of the following technique IDs (or a closely related sub-technique). Pick the one that BEST matches the scenario's actual attack pattern.
+
+PHISHING / PRETEXTING / BEC:
+- T1566 (Phishing) — fraudulent communications to steal credentials/data
+  - T1566.001 Spearphishing Attachment
+  - T1566.002 Spearphishing Link
+  - T1566.003 Spearphishing via Service
+- T1656 (Impersonation) — adversary mimics a trusted entity
+- T1078 (Valid Accounts) — abuse of legitimate credentials (esp. for BEC)
+- T1534 (Email Forwarding Rule) — internal email auto-forwarding for data theft
+
+CREDENTIAL THEFT / BRUTE FORCE:
+- T1110 (Brute Force) — password guessing attacks
+  - T1110.001 Password Guessing, T1110.003 Password Spraying, T1110.004 Credential Stuffing
+- T1555 (Credentials from Password Stores)
+- T1606 (Forge Web Credentials)
+- T1056 (Input Capture) — keyloggers, form grabbing
+
+VISHING / CALL-BASED:
+- T1598 (Phishing for Information) — adversarial voice calls
+  - T1598.001 Spearphishing Voice (vishing)
+
+EXECUTION / MALWARE DELIVERY:
+- T1204 (User Execution) — victim runs malicious content
+  - T1204.001 Malicious Link, T1204.002 Malicious File
+- T1059 (Command and Scripting Interpreter)
+
+DISCOVERY / OSINT:
+- T1589 (Gather Victim Identity Information)
+- T1590 (Gather Victim Network Information)
+- T1592 (Gather Victim Host Information)
+- T1593 (Search Open Websites/Domains)
+- T1595 (Active Scanning)
+- T1583 (Acquire Infrastructure)
+
+DEFENSE EVASION (use ONLY for actual evasion patterns, not for phishing):
+- T1564 (Hide Artifacts) — hiding malicious files/behavior
+- T1027 (Obfuscated Files or Information)
+- T1036 (Masquerading)
+- T1070 (Indicator Removal)
+
+EXFILTRATION:
+- T1041 (Exfiltration Over C2 Channel)
+- T1567 (Exfiltration Over Web Service)
+- T1048 (Exfiltration Over Alternative Protocol)
+
+IMPACT:
+- T1486 (Data Encrypted for Impact) — ransomware
+- T1657 (Financial Theft)
+
+CRITICAL: For a CEO Phishing / Business Email Compromise scenario, the correct IDs are T1566.* (Phishing) or T1656 (Impersonation) or T1078 (Valid Accounts) — NOT T1564 (Hide Artifacts, which is defense evasion). Match the technique to what the attacker ACTUALLY DOES.
 
 == PEOPLE EXPOSURE ==
 Employees identified:
@@ -89,6 +196,7 @@ Respond with ONLY this JSON structure (no markdown, no explanation):
       "title": "<string>",
       "type": "<phishing|pretexting|vishing|BEC|other>",
       "mitre_technique": "T<4 digits>",
+      "mitre_tactic": "<MITRE ATT&CK tactic ID, e.g. TA0001 for Initial Access, TA0006 for Credential Access, TA0043 for Reconnaissance>",
       "description": "<string>",
       "likelihood": "<HIGH|MEDIUM|LOW>",
       "impact": "<HIGH|MEDIUM|LOW>"
@@ -162,8 +270,22 @@ async def get_available_model(client: httpx.AsyncClient) -> str:
     return PRIMARY_MODEL  # default; will fail gracefully
 
 
-async def stream_analysis(request: AnalysisRequest):
-    """Async generator: yields ('token', str) for each LLM chunk, then ('result', AnalysisResult)."""
+async def stream_analysis(request: AnalysisRequest, is_cancelled=None):
+    """Async generator: yields ('token', str) for each LLM chunk, then ('result', AnalysisResult).
+
+    ``is_cancelled`` is an optional async callable returning True when the
+    client has disconnected. When it returns True mid-stream, the generator
+    raises :class:`tasks.CancelledError` so the caller can skip persistence.
+    """
+    from tasks import CancelledError  # local import to avoid circular dep
+
+    async def _check():
+        if is_cancelled is None:
+            return False
+        if asyncio.iscoroutinefunction(is_cancelled):
+            return await is_cancelled()
+        return bool(is_cancelled())
+
     async with httpx.AsyncClient() as client:
         model = await get_available_model(client)
         user_prompt = build_user_prompt(request)
@@ -194,6 +316,9 @@ async def stream_analysis(request: AnalysisRequest):
             response.raise_for_status()
             line_count = 0
             async for line in response.aiter_lines():
+                if await _check():
+                    print(f"[STREAM] cancelled after {line_count} lines", flush=True)
+                    raise CancelledError()
                 line_count += 1
                 if line_count <= 3:
                     try:
@@ -221,6 +346,7 @@ async def stream_analysis(request: AnalysisRequest):
                     continue
 
         data = extract_json(full_content)
+        _backfill_tactics(data)
         result = AnalysisResult(**data)
         yield ("result", result)
 
@@ -256,6 +382,7 @@ async def run_analysis(request: AnalysisRequest) -> AnalysisResult:
 
                 content = resp.json()["message"]["content"]
                 data = extract_json(content)
+                _backfill_tactics(data)
                 result = AnalysisResult(**data)
                 return result
 
@@ -374,8 +501,21 @@ Respond ONLY with valid JSON:
             }
 
 
-async def stream_playbook(scenario: dict, company_name: str, mode: str, context: dict):
-    """Async generator yielding ('token', str) for playbook streaming."""
+async def stream_playbook(scenario: dict, company_name: str, mode: str, context: dict, is_cancelled=None):
+    """Async generator yielding ('token', str) for playbook streaming.
+
+    ``is_cancelled`` is an optional async/sync callable returning True when
+    the client has disconnected. See :func:`stream_analysis` for details.
+    """
+    from tasks import CancelledError
+
+    async def _check():
+        if is_cancelled is None:
+            return False
+        if asyncio.iscoroutinefunction(is_cancelled):
+            return await is_cancelled()
+        return bool(is_cancelled())
+
     is_atk = mode == 'attack'
     role = "red team consultant and penetration tester" if is_atk else "blue team security analyst and incident responder"
     framing = (
@@ -442,6 +582,8 @@ Rules:
         ) as response:
             response.raise_for_status()
             async for line in response.aiter_lines():
+                if await _check():
+                    raise CancelledError()
                 if not line.strip():
                     continue
                 try:

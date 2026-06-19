@@ -2,7 +2,12 @@
 import { createPortal } from 'react-dom'
 import RadarChart from './RadarChart'
 import { useToast } from '../context/ToastContext'
+import { useAIStore } from '../context/AIStoreContext'
 import PlaybookDrawer from './PlaybookDrawer'
+import CacheBadge from './CacheBadge'
+import ChatPanel from './ChatPanel'
+import ChatLauncher from './ChatLauncher'
+import KillChainDiagram from './killchain/KillChainDiagram'
 
 const RISK_COLORS = {
   LOW:      { text: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30',  hex: '#22c55e' },
@@ -328,12 +333,27 @@ function ComparisonTile({ comparison, isOpen, onToggle, mode }) {
 export default function Dashboard({ analysis, onNewAnalysis }) {
   const { id, timestamp, company_name, result } = analysis
   const { toast } = useToast()
+  const aiStore = useAIStore()
   const [mode, setMode] = useState('attack')
   const [activePlaybook, setActivePlaybook] = useState(null)
   const playbookCache = useRef({})
   const [comparison, setComparison] = useState(null)
   const [comparisonLoading, setComparisonLoading] = useState(false)
   const [comparisonOpen, setComparisonOpen] = useState(true)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatInitialMessage, setChatInitialMessage] = useState(null)
+
+  // Listen for "Open" requests from BackgroundStreamToasts
+  useEffect(() => {
+    const req = aiStore.openPlaybookRequest
+    if (!req) return
+    const s = (result?.attack_scenarios || []).find(x => x.title === req.scenarioTitle)
+    if (s) {
+      if (req.mode) setMode(req.mode)
+      setActivePlaybook(s)
+    }
+    aiStore.clearOpenPlaybookRequest()
+  }, [aiStore.openPlaybookRequest])
 
   useEffect(() => {
     if (!id) return
@@ -387,42 +407,64 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-4 min-w-0 flex-wrap">
             <h1 className="text-2xl sm:text-3xl font-display font-bold truncate">{company_name}</h1>
             <div className={`shrink-0 font-mono font-bold text-xs tracking-widest px-3 py-1.5 border ${riskStyle.border} ${riskStyle.bg} ${riskStyle.text}`}
                  style={{ boxShadow: `0 0 16px ${riskStyle.hex}22` }}>
               {result.risk_level}
             </div>
+            {analysis.cache && (
+              <CacheBadge
+                cache={analysis.cache}
+                elapsedMs={analysis.cache.elapsed_ms}
+                model={analysis.cache.model || analysis.model}
+              />
+            )}
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {/* ── ATK / DEF mode toggle ── */}
-            <div className="flex rounded-sm overflow-hidden"
-                 style={{ border: '1px solid rgb(var(--color-border) / 0.6)' }}>
-              <button
-                onClick={() => setMode('attack')}
-                className="font-mono text-xs px-4 py-1.5 uppercase tracking-widest transition-all duration-200"
-                style={{
-                  backgroundColor: isAtk ? `${riskStyle.hex}20` : 'transparent',
-                  color: isAtk ? riskStyle.hex : 'rgb(82 82 82)',
-                  borderRight: '1px solid rgb(var(--color-border) / 0.4)',
-                }}
-              >
-                // ATK
-              </button>
-              <button
-                onClick={() => setMode('defense')}
-                className="font-mono text-xs px-4 py-1.5 uppercase tracking-widest transition-all duration-200"
-                style={{
-                  backgroundColor: !isAtk ? '#22c55e20' : 'transparent',
-                  color: !isAtk ? '#22c55e' : 'rgb(82 82 82)',
-                }}
-              >
-                // DEF
-              </button>
-            </div>
+            {/* ── ATK / DEF mode toggle (hidden when chat is open) ── */}
+            {!chatOpen && (
+              <div className="flex rounded-sm overflow-hidden"
+                   style={{ border: '1px solid rgb(var(--color-border) / 0.6)' }}>
+                <button
+                  onClick={() => setMode('attack')}
+                  className="font-mono text-xs px-4 py-1.5 uppercase tracking-widest transition-all duration-200"
+                  style={{
+                    backgroundColor: isAtk ? `${riskStyle.hex}20` : 'transparent',
+                    color: isAtk ? riskStyle.hex : 'rgb(82 82 82)',
+                    borderRight: '1px solid rgb(var(--color-border) / 0.4)',
+                  }}
+                >
+                  // ATK
+                </button>
+                <button
+                  onClick={() => setMode('defense')}
+                  className="font-mono text-xs px-4 py-1.5 uppercase tracking-widest transition-all duration-200"
+                  style={{
+                    backgroundColor: !isAtk ? '#22c55e20' : 'transparent',
+                    color: !isAtk ? '#22c55e' : 'rgb(82 82 82)',
+                  }}
+                >
+                  // DEF
+                </button>
+              </div>
+            )}
 
             <button onClick={onNewAnalysis} className="serai-btn-secondary text-xs">← New</button>
+            {!chatOpen && (
+              <button
+                onClick={() => { setChatInitialMessage(null); setChatOpen(true) }}
+                className="font-mono text-xs px-3 py-1.5 border border-accent/30 text-accent hover:bg-accent/10
+                           rounded-sm uppercase tracking-widest transition-colors flex items-center gap-1.5"
+                title="Ask AI about this analysis"
+              >
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                </svg>
+                Chat
+              </button>
+            )}
             <button onClick={downloadPdf} className="serai-btn-primary text-xs">↓ PDF Report</button>
           </div>
         </div>
@@ -558,6 +600,20 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
           </div>
         </div>
 
+        {/* ── Tile 4.5: Kill-Chain Diagram (ATK/DEF aware) ── */}
+        <div className="md:col-span-12 serai-card p-5 fade-in-up"
+             style={{ animationDelay: '0.18s' }}>
+          <TileHeader
+            label={isAtk ? 'Attack Kill-Chain' : 'Defense Coverage Map'}
+            prefix="// 04b"
+          />
+          <KillChainDiagram
+            scenarios={result.attack_scenarios}
+            mode={mode}
+            onScenarioClick={(s) => setActivePlaybook(s)}
+          />
+        </div>
+
         {/* ══ ATK MODE: Scenarios (7) + Recs compact (5) ══ */}
         {isAtk && (
           <>
@@ -593,16 +649,31 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
                       <ThreatMatrix likelihood={s.likelihood} impact={s.impact} />
                     </div>
                     <p className="text-xs text-neutral-500 leading-relaxed mb-2.5">{s.description}</p>
-                        <button
-                          onClick={() => setActivePlaybook(s)}
-                          className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors shrink-0 mt-2"
-                          title="Generate attack playbook"
-                        >
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                          Playbook
-                        </button>
+                        <div className="flex items-center gap-4 mt-2">
+                          <button
+                            onClick={() => setActivePlaybook(s)}
+                            className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors shrink-0"
+                            title="Generate attack playbook"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            Playbook
+                          </button>
+                          <button
+                            onClick={() => {
+                              setChatInitialMessage(`Explain the "${s.title}" scenario in more detail. ${isAtk ? 'How would an attacker execute it step-by-step?' : 'What detection signals and mitigations should I prioritize?'}`)
+                              setChatOpen(true)
+                            }}
+                            className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors shrink-0"
+                            title="Ask AI about this scenario"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                            </svg>
+                            Ask AI
+                          </button>
+                        </div>
                     <div className="flex gap-3">
                       {[{ label: 'Likelihood', val: s.likelihood }, { label: 'Impact', val: s.impact }].map(({ label, val }) => {
                         const c = val === 'HIGH' ? '#ef4444' : val === 'MEDIUM' ? '#eab308' : '#22c55e'
@@ -703,14 +774,29 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
                         )
                       })}
                     </div>
-                    <button
-                      onClick={() => setActivePlaybook(s)}
-                      className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors mt-2"
-                      title="Generate attack playbook"
-                    >
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                      Playbook
-                    </button>
+                    <div className="flex items-center gap-4 mt-2">
+                      <button
+                        onClick={() => setActivePlaybook(s)}
+                        className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors"
+                        title="Generate attack playbook"
+                      >
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        Playbook
+                      </button>
+                      <button
+                        onClick={() => {
+                          setChatInitialMessage(`Explain the "${s.title}" scenario in more detail. ${isAtk ? 'How would an attacker execute it step-by-step?' : 'What detection signals and mitigations should I prioritize?'}`)
+                          setChatOpen(true)
+                        }}
+                        className="flex items-center gap-1 font-mono text-xs text-accent/60 hover:text-accent transition-colors"
+                        title="Ask AI about this scenario"
+                      >
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                        </svg>
+                        Ask AI
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -720,8 +806,8 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
 
       </div>{/* end bento grid */}
 
-      {/* ── Floating mode pill (portal to escape parent transforms) ── */}
-      {createPortal(
+      {/* ── Floating mode pill (hidden when chat is open) ── */}
+      {!chatOpen && createPortal(
         <div style={{
           position: 'fixed',
           bottom: '1.5rem',
@@ -791,6 +877,13 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
           cachedText={playbookCache.current[`${activePlaybook.title}__${mode}`] || ''}
           onCache={(title, text) => { playbookCache.current[`${title}__${mode}`] = text }}
           onClose={() => setActivePlaybook(null)}
+          onScenarioSelect={(title, modeToOpen) => {
+            const s = (result.attack_scenarios || []).find(x => x.title === title)
+            if (s) {
+              if (modeToOpen) setMode(modeToOpen)
+              setActivePlaybook(s)
+            }
+          }}
         />
       )}
       <div className="flex items-center justify-between font-mono text-xs text-neutral-700 py-4 mt-4 fade-in-up"
@@ -798,6 +891,19 @@ export default function Dashboard({ analysis, onNewAnalysis }) {
         <span>Analysis ID: <span className="text-neutral-600">{id}</span></span>
         <span>Generated locally · No data transmitted externally</span>
       </div>
+
+      {/* ── Chat ── */}
+      <ChatLauncher
+        onClick={() => { setChatInitialMessage(null); setChatOpen(true) }}
+        hidden={chatOpen}
+      />
+      <ChatPanel
+        analysis={analysis}
+        mode={mode}
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        initialMessage={chatInitialMessage}
+      />
     </div>
   )
 }

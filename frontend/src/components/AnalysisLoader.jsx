@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import TaskProgress from './TaskProgress'
 
 // ── Demo mode: fake timed steps ───────────────────────────────────────────────
 const DEMO_STEPS = [
@@ -129,7 +130,7 @@ function StepList({ steps, completedSteps, currentStep }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function AnalysisLoader({ company, speed = 1, onComplete, streamEvent }) {
+export default function AnalysisLoader({ company, speed = 1, onComplete, streamEvent, onCancel, onKeepDraft }) {
   const isStreamMode = streamEvent !== undefined
 
   // ── Demo / timer mode state ──
@@ -171,6 +172,8 @@ export default function AnalysisLoader({ company, speed = 1, onComplete, streamE
   const [streamPhase,    setStreamPhase]   = useState('connecting')
   const [thinkBuffer,    setThinkBuffer]   = useState('')
   const [tokenBuffer,    setTokenBuffer]   = useState('')
+  const [cacheHit,       setCacheHit]      = useState(null)
+  const [tasks,          setTasks]         = useState([])
   const tokenBoxRef = useRef(null)
 
   useEffect(() => {
@@ -178,8 +181,25 @@ export default function AnalysisLoader({ company, speed = 1, onComplete, streamE
     if (streamEvent.type === 'connected')  setStreamPhase('generating')
     if (streamEvent.type === 'thinking')   setThinkBuffer(prev => prev + streamEvent.content)
     if (streamEvent.type === 'token')      setTokenBuffer(prev => prev + streamEvent.content)
+    if (streamEvent.type === 'cache_hit')  setCacheHit(streamEvent)
     if (streamEvent.type === 'done')       setStreamPhase('done')
     if (streamEvent.type === 'error')      setStreamPhase('connecting')
+    if (streamEvent.type === 'task') {
+      setTasks(prev => {
+        const idx = prev.findIndex(t => t.id === streamEvent.id)
+        const next = prev.slice()
+        const entry = {
+          id: streamEvent.id,
+          label: streamEvent.label,
+          status: streamEvent.status,
+          elapsedMs: streamEvent.elapsed_ms,
+          error: streamEvent.error,
+        }
+        if (idx === -1) next.push(entry)
+        else next[idx] = { ...next[idx], ...entry }
+        return next
+      })
+    }
   }, [streamEvent])
 
   // Auto-scroll token box
@@ -225,8 +245,55 @@ export default function AnalysisLoader({ company, speed = 1, onComplete, streamE
           </span>
         </div>
 
-        {/* Step list */}
-        <StepList steps={steps} completedSteps={completedSteps} currentStep={currentStep} />
+        {/* Step list - prefer TaskProgress when streaming with real task events */}
+        {isStreamMode && tasks.length > 0 ? (
+          <TaskProgress
+            tasks={tasks}
+            streaming={streamPhase !== 'done' && streamPhase !== 'connecting'}
+            onCancel={onCancel}
+            cancelLabel="Cancel analysis"
+          />
+        ) : (
+          <StepList steps={steps} completedSteps={completedSteps} currentStep={currentStep} />
+        )}
+
+        {/* Cache hit banner (streaming mode only) */}
+        {isStreamMode && cacheHit && (
+          <div
+            className="mt-4 px-4 py-3 rounded-sm flex items-center gap-3 fade-in-up"
+            style={{
+              backgroundColor: 'rgba(34,197,94,0.06)',
+              border: '1px solid rgba(34,197,94,0.25)',
+            }}
+          >
+            <div
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-base"
+              style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e' }}
+            >
+              ⚡
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-mono text-xs uppercase tracking-widest text-green-400 font-bold">
+                Instant result from cache
+              </div>
+              <div className="text-xs text-neutral-500 mt-0.5">
+                Identical request was analyzed{' '}
+                {cacheHit.created_at
+                  ? new Date(cacheHit.created_at).toLocaleString()
+                  : 'recently'}
+                {cacheHit.access_count != null && (
+                  <> · accessed {cacheHit.access_count}×</>
+                )}
+              </div>
+            </div>
+            <div
+              className="font-mono text-xl font-black tabular-nums shrink-0"
+              style={{ color: '#22c55e' }}
+            >
+              {cacheHit.elapsed_ms ?? 0}<span className="text-xs opacity-60">ms</span>
+            </div>
+          </div>
+        )}
 
         {/* Live token output (streaming mode only) */}
         {isStreamMode && (

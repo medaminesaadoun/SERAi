@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import TaskProgress from './TaskProgress'
+import { usePlaybookStream, startStream } from '../hooks/usePlaybookStream'
 
 const SECTION_HEADINGS = [
   'Reconnaissance',
@@ -73,23 +75,26 @@ function PlaybookContent({ text, streaming }) {
   )
 }
 
-export default function PlaybookDrawer({ scenario, companyName, mode, context, onClose, cachedText = '', onCache = () => {} }) {
-  const [text, setText] = useState('')
-  const [streaming, setStreaming] = useState(false)
-  const [done, setDone] = useState(false)
-  const [error, setError] = useState('')
+export default function PlaybookDrawer({ scenario, companyName, mode, context, onClose, cachedText = '', onCache = () => {}, onScenarioSelect }) {
+  const scenarioId = scenario.title
+
+  const { text, done, error, tasks, streaming, cancel } = usePlaybookStream({
+    scenarioId,
+    mode,
+  })
+
   const scrollRef = useRef(null)
-  const accumRef = useRef('')
-  const isAtk = mode === 'attack'
 
   useEffect(() => {
-    if (cachedText) {
-      setText(cachedText)
-      setDone(true)
-    } else {
-      startStream()
+    startStream(scenarioId, mode, scenario, companyName, context, scenario.title)
+  }, [scenarioId, mode, scenario, companyName, context])
+
+  useEffect(() => {
+    if (done && text) {
+      onCache(scenario.title, text)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -97,138 +102,127 @@ export default function PlaybookDrawer({ scenario, companyName, mode, context, o
     }
   }, [text])
 
-  async function startStream() {
-    setText('')
-    setDone(false)
-    setError('')
-    setStreaming(true)
-    accumRef.current = ''
+  function handleCancel() {
+    cancel()
+  }
 
-    try {
-      const base = import.meta.env.DEV ? 'http://localhost:8000' : ''
-      const response = await fetch(`${base}/api/scenarios/playbook/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario, company_name: companyName, mode, context }),
-      })
-
-      if (!response.ok) throw new Error(`Server error ${response.status}`)
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done: streamDone, value } = await reader.read()
-        if (streamDone) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop()
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const event = JSON.parse(line.slice(6))
-            if (event.type === 'token') {
-              accumRef.current += event.content
-              setText(t => t + event.content)
-            }
-            if (event.type === 'done') {
-              onCache(scenario.title, accumRef.current)
-              setDone(true)
-              setStreaming(false)
-            }
-            if (event.type === 'error') throw new Error(event.message)
-          } catch { /* skip malformed */ }
-        }
-      }
-    } catch (e) {
-      setError(e.message || 'Failed to generate playbook.')
-      setStreaming(false)
+  function handleOpenBackground(scenarioIdToOpen, modeToOpen) {
+    if (onScenarioSelect) {
+      const s = { title: scenarioIdToOpen }
+      onScenarioSelect(s, modeToOpen)
     }
   }
 
+  const isAtk = mode === 'attack'
   const LIKELIHOOD_COLOR = { HIGH: '#ef4444', MEDIUM: '#eab308', LOW: '#22c55e' }
   const liColor = LIKELIHOOD_COLOR[scenario.likelihood] || '#6b7280'
   const impColor = LIKELIHOOD_COLOR[scenario.impact] || '#6b7280'
   const modeColor = isAtk ? 'text-red-400 border-red-500/30 bg-red-500/5' : 'text-blue-400 border-blue-500/30 bg-blue-500/5'
 
   return createPortal(
-    <div className="fixed inset-0 z-[500] flex">
-      {/* Backdrop */}
-      <div
-        className="flex-1 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+    <>
+      <div className="fixed inset-0 z-[500] flex">
+        {/* Backdrop */}
+        <div
+          className="flex-1 bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+        />
 
-      {/* Drawer */}
-      <div className="w-[500px] max-w-[92vw] h-full bg-bg border-l border-border flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 border-b border-border shrink-0">
-          <div className="flex-1 min-w-0">
-            <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">
-              // Attack Playbook
+        {/* Drawer */}
+        <div className="w-[500px] max-w-[92vw] h-full bg-bg border-l border-border flex flex-col shadow-2xl">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 p-5 border-b border-border shrink-0">
+            <div className="flex-1 min-w-0">
+              <div className="font-mono text-xs text-accent uppercase tracking-widest mb-1">
+                // Attack Playbook
+              </div>
+              <div className="font-bold text-base text-neutral-100 leading-snug">{scenario.title}</div>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${modeColor}`}>
+                  {isAtk ? 'ATK' : 'DEF'}
+                </span>
+                <span className="font-mono text-xs px-2 py-0.5 rounded-sm"
+                      style={{ color: 'rgb(var(--color-accent))', background: 'rgb(var(--color-accent) / 0.08)', border: '1px solid rgb(var(--color-accent) / 0.2)' }}>
+                  {scenario.mitre_technique}
+                </span>
+                <span className="font-mono text-xs" style={{ color: liColor }}>L:{scenario.likelihood}</span>
+                <span className="font-mono text-xs" style={{ color: impColor }}>I:{scenario.impact}</span>
+              </div>
             </div>
-            <div className="font-bold text-base text-neutral-100 leading-snug">{scenario.title}</div>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${modeColor}`}>
-                {isAtk ? 'ATK' : 'DEF'}
-              </span>
-              <span className="font-mono text-xs px-2 py-0.5 rounded-sm"
-                    style={{ color: 'rgb(var(--color-accent))', background: 'rgb(var(--color-accent) / 0.08)', border: '1px solid rgb(var(--color-accent) / 0.2)' }}>
-                {scenario.mitre_technique}
-              </span>
-              <span className="font-mono text-xs" style={{ color: liColor }}>L:{scenario.likelihood}</span>
-              <span className="font-mono text-xs" style={{ color: impColor }}>I:{scenario.impact}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {done && (
+            <div className="flex items-center gap-2 shrink-0">
+              {done && (
+                <button
+                  onClick={() => {
+                    cancel()
+                    setTimeout(() => {
+                      startStream(scenarioId, mode, scenario, companyName, context, scenario.title)
+                    }, 100)
+                  }}
+                  className="font-mono text-xs text-neutral-500 hover:text-accent transition-colors flex items-center gap-1"
+                  title="Regenerate"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Regenerate
+                </button>
+              )}
               <button
-                onClick={() => { onCache(scenario.title, ''); startStream() }}
-                className="font-mono text-xs text-neutral-500 hover:text-accent transition-colors flex items-center gap-1"
-                title="Regenerate"
+                onClick={onClose}
+                className="w-7 h-7 flex items-center justify-center text-neutral-500 hover:text-neutral-200 transition-colors rounded hover:bg-white/5"
+                title="Close (generation continues in background)"
               >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                Regenerate
               </button>
-            )}
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center text-neutral-500 hover:text-neutral-200 transition-colors rounded hover:bg-white/5"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            </div>
           </div>
-        </div>
 
-        {/* Streaming status bar */}
-        {streaming && (
-          <div className="px-5 py-2 border-b border-border/50 flex items-center gap-2 shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            <span className="font-mono text-xs text-neutral-500">Generating playbook...</span>
-          </div>
-        )}
-
-        {/* Content */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 pb-20">
-          {error ? (
-            <div className="text-red-400 font-mono text-sm">{error}</div>
-          ) : text ? (
-            <PlaybookContent text={text} streaming={streaming} />
-          ) : (
-            <div className="flex items-center gap-3 text-neutral-600 font-mono text-xs py-8">
-              <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-              Connecting...
+          {/* Streaming task list */}
+          {(streaming || tasks.length > 0) && !text && !error && (
+            <div className="px-5 py-3 border-b border-border/50 shrink-0 bg-black/20">
+              <TaskProgress
+                tasks={tasks}
+                streaming={streaming}
+                onCancel={handleCancel}
+                cancelLabel="Cancel"
+                compact
+              />
             </div>
           )}
+
+          {/* Content */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 pb-20">
+            {error ? (
+              <div className="space-y-3">
+                <div className="text-yellow-400 font-mono text-sm border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 rounded-sm">
+                  {error}
+                </div>
+                <button
+                  onClick={() => {
+                    cancel()
+                    setTimeout(() => {
+                      startStream(scenarioId, mode, scenario, companyName, context, scenario.title)
+                    }, 100)
+                  }}
+                  className="font-mono text-xs px-3 py-1.5 border border-accent/40 text-accent hover:bg-accent/10 rounded-sm uppercase tracking-widest"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : text ? (
+              <PlaybookContent text={text} streaming={streaming} />
+            ) : (
+              <div className="flex items-center gap-3 text-neutral-600 font-mono text-xs py-8">
+                <div className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                Connecting...
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>,
+    </>,
     document.body
   )
 }

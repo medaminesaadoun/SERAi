@@ -64,6 +64,7 @@ class AttackScenario(BaseModel):
     title: str
     type: str
     mitre_technique: str
+    mitre_tactic: str = ""  # tactic ID (e.g. "TA0001"); auto-populated from technique if blank
     description: str
     likelihood: str
     impact: str
@@ -125,6 +126,9 @@ class HealthResponse(BaseModel):
     ollama_connected: bool
     model: str
     message: str
+    chat_model: str | None = None
+    chat_model_available: bool = False
+    installed_models: list[str] = []
 
 
 class PlaybookRequest(BaseModel):
@@ -143,3 +147,71 @@ class ProfileResponse(BaseModel):
     id: str
     name: str
     updated_at: str
+
+
+# ── Cache models ──────────────────────────────────────────────────────────────
+
+class CacheStatsResponse(BaseModel):
+    size: int
+    total_accesses: int
+    oldest: str | None
+    newest: str | None
+
+
+class CacheClearResponse(BaseModel):
+    cleared: int
+
+
+# ── Chat models ───────────────────────────────────────────────────────────────
+
+class ChatMessage(BaseModel):
+    id: str
+    analysis_id: str
+    role: str
+    content: str
+    created_at: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    mode: str = "attack"  # "attack" | "defense"
+    context: dict | None = None  # fallback analysis context for ephemeral/demo analyses
+
+
+class ChatHistoryResponse(BaseModel):
+    messages: list[ChatMessage]
+
+
+# ── Draft models ──────────────────────────────────────────────────────────────
+
+class DraftSaveRequest(BaseModel):
+    analysis_id: str
+    company_name: str | None = None
+    form_data_hash: str
+    partial_text: str
+    progress_pct: float
+    tasks_completed: list[str] = []
+
+
+class DraftResponse(BaseModel):
+    id: str
+    analysis_id: str
+    company_name: str | None
+    form_data_hash: str
+    partial_text: str
+    progress_pct: float
+    tasks_completed: list[str]
+    created_at: str
+    expires_at: str
+
+
+class DraftListItem(BaseModel):
+    id: str
+    analysis_id: str
+    company_name: str | None
+    form_data_hash: str
+    progress_pct: float
+    tasks_completed: list[str]
+    created_at: str
+    expires_at: str
+    partial_text_preview: str
